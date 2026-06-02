@@ -89,7 +89,7 @@ st.sidebar.markdown("---")  # 区切り線
 st.sidebar.write("### 📄 開発資料")
 
 # 先ほどコピーしたGitHubのRaw URLをここに貼り付けます
-raw_html_url = "https://raw.githubusercontent.com/emuzu-morishita/ai-interior-app/main/presentation.html"
+raw_html_url = "https://emuzu-morishita.github.io/ai-interior-app/presentation.html"
 
 # ボタンのように見えるリンク（HTML）を作成
 st.sidebar.markdown(
