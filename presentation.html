@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Interior Coordinator - Naoki Morishita</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        /* 全体の設定 */
+        * { box-sizing: border-box; }
+        body { background-color: #0f172a; margin: 0; padding: 20px 0; display: grid; gap: 20px; place-items: center; font-family: 'Noto Sans JP', sans-serif; }
+        .slide-container { width: 1280px; height: 720px; background-color: #020617; position: relative; overflow: hidden; display: flex; flex-direction: column; padding: 60px; box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6); }
+        
+        /* 背景装飾 */
+        .slide-container::before { content: ''; position: absolute; top: -100px; right: -100px; width: 500px; height: 500px; background: radial-gradient(circle, rgba(163, 230, 53, 0.08) 0%, transparent 70%); z-index: 0; }
+        .slide-container::after { content: ''; position: absolute; bottom: 40px; left: 60px; right: 60px; height: 2px; background: linear-gradient(90deg, #a3e635 0%, rgba(163, 230, 53, 0.05) 100%); z-index: 0; }
+        .slide-container > * { position: relative; z-index: 1; }
+
+        /* タイトルとテキスト */
+        h1, h2, h3 { color: #f8fafc; font-family: 'Poppins', sans-serif; font-weight: 700; margin: 0; }
+        .slide-title { font-size: 44px; margin-bottom: 40px; border-left: 10px solid #a3e635; padding-left: 25px; width: 100%; text-align: left; }
+        p, li, td, th { color: #cbd5e1; font-size: 24px; line-height: 1.5; }
+        strong { color: #a3e635; }
+
+        /* レイアウト用 */
+        .content-area { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; width: 100%; }
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; width: 100%; }
+        .tile-container { display: flex; gap: 30px; width: 100%; }
+        .tile { background: #1e293b; border: 1px solid #334155; border-radius: 24px; flex: 1; padding: 40px; text-align: center; }
+        .tile .icon { color: #a3e635; font-size: 56px; margin-bottom: 20px; }
+        
+        /* チャート */
+        .bar-chart { width: 100%; display: flex; flex-direction: column; gap: 30px; }
+        .bar { display: flex; align-items: center; gap: 20px; }
+        .bar-label { width: 250px; text-align: right; font-weight: 700; color: #f8fafc; }
+        .bar-bg { flex-grow: 1; height: 50px; background: #1e293b; border-radius: 25px; overflow: hidden; }
+        .bar-fill { height: 100%; background: linear-gradient(90deg, #a3e635, #4d7c0f); display: flex; align-items: center; justify-content: flex-end; padding-right: 20px; color: #020617; font-weight: 700; }
+
+        /* テーブル */
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 20px; text-align: left; border-bottom: 1px solid #334155; }
+        th { color: #a3e635; background: rgba(163, 230, 53, 0.05); }
+
+        /* ミッションページ特有のバランス調整 */
+        .mission-box { background: rgba(30, 41, 59, 0.7); border: 1px solid #334155; border-radius: 30px; padding: 60px 80px; text-align: center; max-width: 1000px; margin: 0 auto; box-shadow: 0 20px 50px rgba(0,0,0,0.3); }
+
+        /* Bleed Image Layout */
+        .slide-container.bleed-layout { display: grid; grid-template-columns: 1fr 1fr; padding: 0; }
+        .bleed-layout .text-part { padding: 60px; display: flex; flex-direction: column; justify-content: center; }
+        .bleed-layout .image-part { height: 720px; overflow: hidden; }
+        .bleed-layout .image-part img { width: 100%; height: 100%; object-fit: cover; }
+    </style>
+</head>
+<body>
+
+<div class="slide-container">
+    <div class="content-area">
+        <h1 style="font-size: 90px;">AI Interior<br><span style="color: #a3e635;">Coordinator</span></h1>
+        <p style="font-size: 34px; color: #94a3b8; margin-top: 20px;">AI駆動開発による「理想の住まい」の具現化</p>
+        <div style="margin-top: 60px;">
+            <p style="font-size: 36px; font-weight: 700; color: #f8fafc; margin: 0;">Naoki Morishita</p>
+            <p style="font-size: 22px; color: #64748b; margin-top: 5px;">Systems Engineer</p>
+        </div>
+    </div>
+</div>
+
+<div class="slide-container">
+    <div class="content-area">
+        <div style="font-family: 'Poppins'; font-size: 24px; color: #a3e635; letter-spacing: 5px; text-transform: uppercase; margin-bottom: 20px;">Mission</div>
+        <div class="mission-box">
+            <h2 style="font-size: 42px; color: #f8fafc; line-height: 1.6; margin-bottom: 30px;">
+                「センスがないから」という諦めを、<br>
+                <span style="color: #a3e635; font-size: 52px;">AIのテクノロジー</span> で解決する。
+            </h2>
+            <div style="width: 80px; height: 4px; background: #a3e635; margin: 0 auto 30px;"></div>
+            <p style="font-size: 26px; color: #cbd5e1; line-height: 1.5;">
+                間取りと予算を入力するだけで、理想の空間を1分以内に可視化。<br>
+                誰もが迷わず「自分好みの部屋」を作れる世界へ。
+            </p>
+        </div>
+    </div>
+</div>
+
+<div class="slide-container">
+    <h2 class="slide-title">インテリアにおける「3大ハードル」</h2>
+    <div class="content-area">
+        <div class="tile-container">
+            <div class="tile">
+                <div class="icon"><i class="fa-solid fa-eye-slash"></i></div>
+                <h3>イメージの欠如</h3>
+                <p>完成図を具体的に想像できず、家具選びの失敗リスクが高い。</p>
+            </div>
+            <div class="tile">
+                <div class="icon"><i class="fa-solid fa-calculator"></i></div>
+                <h3>予算管理の壁</h3>
+                <p>理想を求めると予算を超過し、調整に膨大な時間を要する。</p>
+            </div>
+            <div class="tile">
+                <div class="icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+                <h3>検索の限界</h3>
+                <p>膨大な商品から条件に合う1品を探すのは、実質的に不可能。</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="slide-container">
+    <h2 class="slide-title">AIが提供する「3つの価値」</h2>
+    <div class="content-area">
+        <div class="two-column">
+            <ul style="list-style: none; padding: 0;">
+                <li style="margin-bottom: 30px;"><strong>即時可視化:</strong> 要望からフォトリアルな完成図を瞬時に生成。</li>
+                <li style="margin-bottom: 30px;"><strong>予算の厳守:</strong> 提案家具の合計を設定予算内に自動調整。</li>
+                <li><strong>ECダイレクト検索:</strong> ボタン一つで主要ECサイトの検索結果へ。</li>
+            </ul>
+            <div style="border-radius: 20px; border: 1px solid #334155; height: 400px; overflow: hidden;">
+                <img src="http://googleusercontent.com/image_collection/image_retrieval/13184294966017188755" style="width:100%; height:100%; object-fit:cover;">
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="slide-container bleed-layout">
+    <div class="text-part">
+        <h2 style="font-size: 44px; margin-bottom: 20px; color: #a3e635;">AI Rendering</h2>
+        <p>GPT-4oが言語化し、DALL-E 3が描画する「理想の部屋」。</p>
+        <p><strong>「あなたの部屋で実現可能な最高の結果」</strong>を視覚的に約束します。</p>
+    </div>
+    <div class="image-part">
+        <img src="http://googleusercontent.com/image_collection/image_retrieval/4845331553197703411">
+    </div>
+</div>
+
+<div class="slide-container">
+    <h2 class="slide-title">技術的核心：構造化データ抽出</h2>
+    <div class="content-area">
+        <div class="two-column">
+            <div style="background:#020617; border: 1px solid #334155; padding: 40px; border-radius: 20px; font-family: monospace; font-size: 20px;">
+                <span style="color: #a3e635;">{</span><br>
+                &nbsp;&nbsp;"item": "Side Table",<br>
+                &nbsp;&nbsp;"price": 4500,<br>
+                &nbsp;&nbsp;"search": "北欧 モダン 黒"<br>
+                <span style="color: #a3e635;">}</span>
+            </div>
+            <div>
+                <h3>思考をシステムへ統合</h3>
+                <p>AIの提案を<strong>JSON形式</strong>に変換し、フロントエンドのコンポーネント（予算バー等）へ直接流し込む設計。</p>
+                <p>AIを単なるチャットではなくデータエンジンとして活用。</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="slide-container">
+    <h2 class="slide-title">堅牢な設計：予算5,000円の回答</h2>
+    <div class="content-area">
+        <div class="two-column">
+            <div style="text-align: center;">
+                <div style="font-size: 160px; font-weight: 700; color: #a3e635; line-height: 1;">5,000</div>
+                <div style="font-size: 32px; font-weight: 700; color: #f8fafc;">JPY TEST CASE</div>
+            </div>
+            <div>
+                <h3>「代替案」を導き出す知性</h3>
+                <p>不可能な条件をただ断るのではなく、<strong>「照明と小物で質感を上げる」</strong>という戦略的回答を導出。</p>
+                <p>どんな厳しい条件でも、ユーザーに価値を返し続ける設計です。</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="slide-container">
+    <h2 class="slide-title">Tech Stack：AI駆動開発</h2>
+    <div class="content-area">
+        <div class="tile-container">
+            <div class="tile"><h3>Python & Streamlit</h3><p>最速のUI構築とAI連携。</p></div>
+            <div class="tile"><h3>OpenAI API</h3><p>GPT-4o & DALL-E 3の活用。</p></div>
+            <div class="tile"><h3>GitHub Actions</h3><p>完全自動化されたデプロイ。</p></div>
+        </div>
+    </div>
+</div>
+
+<div class="slide-container">
+    <h2 class="slide-title">圧倒的な時間短縮効果</h2>
+    <div class="content-area">
+        <div class="bar-chart">
+            <div class="bar">
+                <div class="bar-label">本アプリ (AI)</div>
+                <div class="bar-bg"><div class="bar-fill" style="width: 95%;">提案まで 30秒</div></div>
+            </div>
+            <div class="bar">
+                <div class="bar-label">従来の手法</div>
+                <div class="bar-bg"><div class="bar-fill" style="width: 20%; background: #475569; color: #fff;">数日〜数週間</div></div>
+            </div>
+        </div>
+        <p style="text-align: center; margin-top: 50px;">AIにより、<strong>従来の数百倍のスピード</strong>で提案が可能。</p>
+    </div>
+</div>
+
+<div class="slide-container">
+    <h2 class="slide-title">既存サービスとの比較</h2>
+    <div class="content-area">
+        <table>
+            <thead><tr><th>項目</th><th>一般的アプリ</th><th>本システム</th></tr></thead>
+            <tbody>
+                <tr><td>提案ロジック</td><td>在庫カタログから</td><td><strong>理想からの逆算</strong></td></tr>
+                <tr><td>ビジュアル</td><td>簡易CGのみ</td><td><strong>AIレンダリング</strong></td></tr>
+                <tr><td>予算調整</td><td>手動計算</td><td><strong>AIによる最適化</strong></td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="slide-container">
+    <h2 class="slide-title">Development Roadmap</h2>
+    <div class="content-area">
+        <div style="display: flex; justify-content: space-between; border-top: 4px solid #334155; padding-top: 30px;">
+            <div><h3>Week 1</h3><p>環境構築</p></div>
+            <div><h3>Week 2</h3><p>UI実装</p></div>
+            <div><h3>Week 3</h3><p>精度調整</p></div>
+            <div><h3>Week 4</h3><p>公開</p></div>
+        </div>
+    </div>
+</div>
+
+<div class="slide-container" style="background: radial-gradient(circle at center, #1e293b 0%, #020617 100%);">
+    <div class="content-area" style="text-align: center;">
+        <h2 style="font-size: 88px; color: #a3e635; margin-bottom: 30px;">Thank You</h2>
+        <p style="font-size: 28px; margin-bottom: 40px;">https://ai-interior-app.streamlit.app/</p>
+        <p style="color: #94a3b8;">Built by Naoki Morishita</p>
+    </div>
+</div>
+
+</body>
+</html>
