@@ -83,3 +83,20 @@ if submit_button:
 else:
     # ボタンが押される前の初期表示
     st.info("👈 左のサイドバーに条件を入力して、「理想の部屋を提案してもらう」ボタンを押してください。")
+
+# --- サイドバーの一番下にプレゼン資料へのリンクボタンを追加 ---
+st.sidebar.markdown("---")  # 区切り線
+st.sidebar.write("### 📄 開発資料")
+
+# 先ほどコピーしたGitHubのRaw URLをここに貼り付けます
+raw_html_url = "https://raw.githubusercontent.com/emuzu-morishita/ai-interior-app/main/presentation.html"
+
+# ボタンのように見えるリンク（HTML）を作成
+st.sidebar.markdown(
+    f'<a href="{raw_html_url}" target="_blank" style="text-decoration: none;">'
+    '<button style="width: 100%; padding: 10px; background-color: #1e293b; color: #a3e635; '
+    'border: 1px solid #334155; border-radius: 8px; cursor: pointer; font-weight: bold;">'
+    '📊 プレゼン資料を見る'
+    '</button></a>',
+    unsafe_allow_html=True
+)
