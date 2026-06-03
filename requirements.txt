@@ -1,3 +1,6 @@
 streamlit
 openai
+requests
+Pillow
 python-dotenv
+pandas
