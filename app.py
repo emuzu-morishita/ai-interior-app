@@ -1,102 +1,100 @@
 import streamlit as st
+from google import genai
+from google.genai import types
 import json
 
-# --- 画面の基本設定 ---
-st.set_page_config(page_title="AIインテリアコーディネーター", layout="wide")
-st.title("🛋️ AIインテリアコーディネーター (仮)")
+# タイトル
+st.title("AI Interior Coordinator (Gemini版)")
 
-# --- ダミーデータ（API通信の代わり） ---
-# 以前設計したAIの出力プロンプトと同じ形のJSONデータです
-dummy_response = """
-{
-  "advice": "お部屋の縦長な間取りを活かし、奥にベッド、手前にリビングスペースを配置することで、空間を広く見せることができます。白を基調としつつ、木目の家具を取り入れることで、ご希望の温かみのある北欧風の空間に仕上がります。",
-  "total_estimated_price": 85000,
-  "furniture_list": [
-    {
-      "item_name": "2人掛けファブリックソファ",
-      "reason": "部屋の主役として、温かみのあるグレーを選択。壁際に配置します。",
-      "estimated_price": 45000,
-      "search_keyword": "2人掛け ソファ ファブリック 北欧"
-    },
-    {
-      "item_name": "木製ローテーブル",
-      "reason": "ソファの色味に合わせたオーク材のテーブルです。",
-      "estimated_price": 15000,
-      "search_keyword": "ローテーブル 木製 オーク 北欧"
-    },
-    {
-      "item_name": "間接照明（フロアライト）",
-      "reason": "部屋の角に配置し、夜はリラックスできる空間を演出します。",
-      "estimated_price": 25000,
-      "search_keyword": "フロアライト 間接照明 北欧 スタンド"
-    }
-  ],
-  "image_prompt": "A photorealistic interior design of a room..."
-}
-"""
+# サイドバーにAPIキーの入力欄を設置（テスト用）
+gemini_key = st.sidebar.text_input("Gemini API Key", type="password")
 
-# --- ① 条件入力（サイドバー） ---
-with st.sidebar:
-    st.header("📋 お部屋の条件")
-    floor_plan = st.text_input("部屋の間取り", placeholder="例: 8畳のワンルーム、縦長")
-    atmosphere = st.text_input("希望の雰囲気", placeholder="例: 北欧風、白と木目が基調")
-    budget = st.number_input("ご予算 (円)", min_value=0, value=100000, step=10000)
-    
-    submit_button = st.button("🌟 理想の部屋を提案してもらう")
+# サイドバーに入力欄を作っておくか、直接コードに貼る用
+# (今回は仮でサイドバーに入力欄を作る想定にします)
+stability_key = st.sidebar.text_input("Stability AI API Key", type="password")
 
-# --- ② 提案表示（メインエリア） ---
-if submit_button:
-    # ここで本当はAPIを呼び出しますが、今回はダミーのJSONをPythonの辞書型に変換します
-    data = json.loads(dummy_response)
-    
-    tab1, tab2 = st.tabs(["🛋️ レイアウト提案", "🛒 おすすめ家具"])
-    
-    # タブ1: レイアウト提案
-    with tab1:
-        st.subheader("💡 AIからの総合アドバイス")
-        st.write(data["advice"])
+# --- ユーザー入力 ---
+room_size = st.selectbox("間取り（広さ）", ["6畳", "8畳", "10畳", "12畳以上"])
+budget = st.number_input("予算 (円)", min_value=5000, max_value=1000000, value=50000, step=5000)
+taste = st.text_input("好みのテイスト（例：北欧モダン、インダストリアル）", "北欧モダン")
+
+if st.button("コーディネートを生成する"):
+    if not gemini_key:
+        st.error("サイドバーにGeminiのAPIキーを入力してください。")
+    else:
+        # クライアントの初期化
+        client = genai.Client(api_key=gemini_key)
         
-        st.subheader("🖼️ 理想の部屋のイメージ")
-        st.info("※API連携後、ここにDALL-E 3で生成した画像が表示されます")
-        # st.image(image_url) # API連携後にコメントアウトを外す
+        # AIへの指示（プロンプト）
+        prompt = f"""
+        あなたはプロのインテリアコーディネーターです。
+        以下の条件に合わせた家具の提案を、必ず指定されたJSONフォーマットのみで出力してください。
         
-    # タブ2: おすすめ家具と予算シミュレーション
-    with tab2:
-        st.subheader("💰 ご予算のシミュレーション")
+        【条件】
+        - 広さ: {room_size}
+        - 予算: {budget}円
+        - テイスト: {taste}
         
-        # 予算に対する使用割合を計算してプログレスバーを表示
-        progress_ratio = min(data["total_estimated_price"] / budget, 1.0) if budget > 0 else 0.0
-        st.progress(progress_ratio)
-        st.write(f"概算合計: **{data['total_estimated_price']:,}円** / 予算: {budget:,}円")
-        
-        st.divider() # 区切り線
-        
-        st.subheader("🛍️ 提案された家具一覧")
-        for idx, item in enumerate(data["furniture_list"], 1):
-            st.markdown(f"**{idx}. {item['item_name']} (概算: ¥{item['estimated_price']:,})**")
-            st.write(f"💡 理由: {item['reason']}")
-            
-            # 検索キーワードをURLエンコード（空白を+に変換）してYahooショッピングのリンクを作成
-            search_url = f"https://shopping.yahoo.co.jp/search?p={item['search_keyword'].replace(' ', '+')}"
-            st.link_button("👉 Yahoo!ショッピングで探す", search_url)
-            st.write("---")
-else:
-    # ボタンが押される前の初期表示
-    st.info("👈 左のサイドバーに条件を入力して、「理想の部屋を提案してもらう」ボタンを押してください。")
+        【厳守事項】
+        予算が5,000円など極端に低い場合は、大型家具ではなく、間接照明やクッションなどの小物で部屋の質感を上げる代替案を提案してください。
+        """
 
-# --- サイドバーの一番下にプレゼン資料へのリンクボタンを追加 ---
-st.sidebar.markdown("---")  # 区切り線
-st.sidebar.write("### 📄 開発資料")
+        # GeminiにJSONの形（スキーマ）を教えて、強制的にその形で出力させる設定
+        # (前回OpenAIで設定したものと同じ構造をGemini用に翻訳しています)
+        response = client.models.generate_content(
+            model='gemini-2.5-flash', # 高速・無料枠ありの優秀なモデル
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=types.Schema(
+                    type=types.Type.OBJECT,
+                    properties={
+                        "item_name": types.Schema(type=types.Type.STRING, description="家具・小物の名前"),
+                        "price": types.Schema(type=types.Type.INTEGER, description="概算金額"),
+                        "reason": types.Schema(type=types.Type.STRING, description="選定した理由"),
+                        "image_prompt": types.Schema(type=types.Type.STRING, description="DALL-E 3やStable Diffusion用の高精細な英語画像生成プロンプト")
+                    },
+                    required=["item_name", "price", "reason", "image_prompt"]
+                )
+            ),
+        )
 
-# 先ほどコピーしたGitHubのRaw URLをここに貼り付けます
-raw_html_url = "https://emuzu-morishita.github.io/ai-interior-app/presentation.html"
+        # 結果を表示
+        result_json = json.loads(response.text)
+        st.success("AIからの提案（JSONデータ）の抽出に成功しました！")
+        st.write(result_json)
+        
+        # 次のステップ用（ここに画像生成の処理を追加します）
+        st.info(f"💡 このプロンプトを使って、次にStability AIで画像を生成します:\n`{result_json['image_prompt']}`")
 
-# ボタンのように見えるリンク（HTML）を作成
-st.sidebar.markdown(
-    f'<a href="{raw_html_url}" target="_blank" style="text-decoration: none;">'
-    '<button style="width: 100%; padding: 10px; background-color: #1e293b; color: #a3e635; '
-    'border: 1px solid #334155; border-radius: 8px; cursor: pointer; font-weight: bold;">'
-    '📊 プレゼン資料を見る'
-    '</button></a>',
-    unsafe_allow_html=True
-)
+        # --- ここから下に画像生成のコードを追加 ---
+        st.subheader("🖼️ 理想の部屋のイメージ（AI生成）")
+        
+        if not stability_key:
+            st.warning("サイドバーにStability AIのAPIキーを入力すると、画像が自動生成されます。")
+        else:
+            with st.spinner("理想の部屋のイメージ画像を生成中..."):
+                import requests
+                from PIL import Image
+                import io
+
+                # Stability AI SD3 APIの呼び出し
+                url = "https://api.stability.ai/v2beta/stable-image/generate/sd3"
+                headers = {
+                    "authorization": f"Bearer {stability_key}",
+                    "accept": "image/*"
+                }
+                data = {
+                    "prompt": result_json['image_prompt'], # Geminiが作ったプロンプトをそのまま投入！
+                    "output_format": "jpeg",
+                    "aspect_ratio": "1:1" # 正方形
+                }
+
+                response = requests.post(url, headers=headers, files={"none": ''}, data=data)
+
+                if response.status_code == 200:
+                    # バイナリデータを画像に変換して表示
+                    image = Image.open(io.BytesIO(response.content))
+                    st.image(image, caption="AIが提案する理想のレイアウト", use_container_width=True)
+                else:
+                    st.error(f"画像生成に失敗しました: {response.json().get('errors', 'Unknown Error')}")
