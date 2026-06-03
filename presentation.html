@@ -58,6 +58,25 @@
         .img-placeholder i { font-size: 64px; color: #a3e635; opacity: 0.55; }
         .img-placeholder .ph-title { font-size: 22px; color: #cbd5e1; font-weight: 700; }
         .img-placeholder .ph-sub { font-size: 16px; color: #64748b; }
+
+        /* コードブロック（構造化データ） */
+        .code-block { background: #0b1221; border: 1px solid #334155; padding: 36px 40px; border-radius: 20px; font-family: 'Consolas', 'Courier New', monospace; font-size: 20px; line-height: 1.9; color: #e2e8f0; box-shadow: inset 0 0 40px rgba(0,0,0,0.4); }
+        .code-block .c-brace { color: #64748b; }
+        .code-block .c-key { color: #7dd3fc; }
+        .code-block .c-str { color: #a3e635; }
+        .code-block .c-num { color: #fbbf24; }
+
+        /* ロードマップ（タイムライン） */
+        .roadmap { position: relative; display: flex; justify-content: space-between; width: 100%; padding-top: 10px; }
+        .roadmap-line { position: absolute; top: 35px; left: 6%; right: 6%; height: 4px; background: linear-gradient(90deg, #334155 0%, #a3e635 100%); z-index: 0; }
+        .roadmap-step { position: relative; z-index: 1; width: 22%; display: flex; flex-direction: column; align-items: center; gap: 24px; }
+        .roadmap-step .node { width: 70px; height: 70px; border-radius: 50%; background: #1e293b; border: 3px solid #334155; color: #94a3b8; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 700; font-family: 'Poppins', sans-serif; }
+        .roadmap-step.done .node { background: #a3e635; border-color: #a3e635; color: #020617; box-shadow: 0 0 30px rgba(163, 230, 53, 0.45); }
+        .roadmap-step .step-card { background: #1e293b; border: 1px solid #334155; border-radius: 18px; padding: 24px 18px; text-align: center; width: 100%; }
+        .roadmap-step.done .step-card { border-color: #a3e635; }
+        .roadmap-step .step-card h3 { font-size: 22px; color: #a3e635; margin-bottom: 8px; }
+        .roadmap-step .step-card .phase { font-size: 20px; color: #f8fafc; font-weight: 700; margin-bottom: 10px; }
+        .roadmap-step .step-card p { font-size: 15px; color: #94a3b8; line-height: 1.45; }
     </style>
 </head>
 <body>
@@ -152,13 +171,13 @@
     <h2 class="slide-title">技術的核心：構造化データ抽出</h2>
     <div class="content-area">
         <div class="two-column">
-            <div style="background:#020617; border: 1px solid #334155; padding: 40px; border-radius: 20px; font-family: monospace; font-size: 20px;">
-                <span style="color: #a3e635;">{</span><br>
-                &nbsp;&nbsp;"item_name": "サイドテーブル",<br>
-                &nbsp;&nbsp;"price": 4500,<br>
-                &nbsp;&nbsp;"reason": "北欧モダンに調和",<br>
-                &nbsp;&nbsp;"image_prompt": "..."<br>
-                <span style="color: #a3e635;">}</span>
+            <div class="code-block">
+                <span class="c-brace">{</span><br>
+                &nbsp;&nbsp;<span class="c-key">"item_name"</span>: <span class="c-str">"サイドテーブル"</span>,<br>
+                &nbsp;&nbsp;<span class="c-key">"price"</span>: <span class="c-num">4500</span>,<br>
+                &nbsp;&nbsp;<span class="c-key">"reason"</span>: <span class="c-str">"北欧モダンに調和"</span>,<br>
+                &nbsp;&nbsp;<span class="c-key">"image_prompt"</span>: <span class="c-str">"..."</span><br>
+                <span class="c-brace">}</span>
             </div>
             <div>
                 <h3>思考をシステムへ統合</h3>
@@ -231,11 +250,24 @@
 <div class="slide-container">
     <h2 class="slide-title">Development Roadmap</h2>
     <div class="content-area">
-        <div style="display: flex; justify-content: space-between; border-top: 4px solid #334155; padding-top: 30px;">
-            <div><h3>Week 1</h3><p>環境構築</p></div>
-            <div><h3>Week 2</h3><p>UI実装</p></div>
-            <div><h3>Week 3</h3><p>精度調整</p></div>
-            <div><h3>Week 4</h3><p>公開</p></div>
+        <div class="roadmap">
+            <div class="roadmap-line"></div>
+            <div class="roadmap-step done">
+                <div class="node">1</div>
+                <div class="step-card"><h3>Week 1</h3><div class="phase">環境構築</div><p>Streamlit基盤の構築とAPI設計</p></div>
+            </div>
+            <div class="roadmap-step done">
+                <div class="node">2</div>
+                <div class="step-card"><h3>Week 2</h3><div class="phase">UI実装</div><p>入力フォームと提案表示の実装</p></div>
+            </div>
+            <div class="roadmap-step done">
+                <div class="node">3</div>
+                <div class="step-card"><h3>Week 3</h3><div class="phase">精度調整</div><p>プロンプト改善と楽天API連携</p></div>
+            </div>
+            <div class="roadmap-step done">
+                <div class="node"><i class="fa-solid fa-rocket"></i></div>
+                <div class="step-card"><h3>Week 4</h3><div class="phase">公開</div><p>Streamlit Cloud へデプロイ</p></div>
+            </div>
         </div>
     </div>
 </div>
