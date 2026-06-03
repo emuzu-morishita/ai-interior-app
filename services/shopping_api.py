@@ -14,9 +14,10 @@ class ShoppingItem:
     shop_name: str
     review_average: float
     review_count: int
+    source: str = ""  # "楽天市場" / "Yahoo!ショッピング"
 
 
-def search_by_keyword(app_id: str, keyword: str, suggested_price: int, hits: int = 3) -> list[ShoppingItem]:
+def search_rakuten(app_id: str, keyword: str, suggested_price: int, hits: int = 3) -> list[ShoppingItem]:
     """楽天市場でキーワード検索し、提案価格に近い商品を返す。"""
     params = {
         "applicationId": app_id,
@@ -50,25 +51,42 @@ def search_by_keyword(app_id: str, keyword: str, suggested_price: int, hits: int
             shop_name=item.get("shopName", ""),
             review_average=float(item.get("reviewAverage", 0)),
             review_count=int(item.get("reviewCount", 0)),
+            source="楽天市場",
         ))
 
     return results
 
 
 def search_all_items(
-    app_id: str,
     items: list[dict],
-    hits_per_item: int = 3,
+    rakuten_id: str = "",
+    yahoo_id: str = "",
+    hits_per_provider: int = 2,
+    max_per_item: int = 4,
 ) -> dict[str, list[ShoppingItem]]:
-    """全アイテムを並列で楽天検索し、{item_name: [ShoppingItem]} を返す。"""
+    """全アイテムを楽天・Yahoo!で並列検索し、{item_name: [ShoppingItem]} を返す。
+
+    各アイテムごとに両プロバイダーの結果を結合し、価格の安い順に max_per_item 件まで絞る。
+    """
+    # 遅延importで循環参照を回避（yahoo側が ShoppingItem を参照するため）
+    from services.yahoo_shopping_api import search_yahoo
 
     def _fetch(item: dict) -> tuple[str, list[ShoppingItem]]:
         name = item["item_name"]
-        try:
-            products = search_by_keyword(app_id, name, item["price"], hits=hits_per_item)
-        except RuntimeError:
-            products = []
-        return name, products
+        price = item["price"]
+        products: list[ShoppingItem] = []
+        if rakuten_id:
+            try:
+                products += search_rakuten(rakuten_id, name, price, hits=hits_per_provider)
+            except RuntimeError:
+                pass
+        if yahoo_id:
+            try:
+                products += search_yahoo(yahoo_id, name, price, hits=hits_per_provider)
+            except RuntimeError:
+                pass
+        products.sort(key=lambda p: p.price)
+        return name, products[:max_per_item]
 
     results: dict[str, list[ShoppingItem]] = {}
     with ThreadPoolExecutor(max_workers=5) as executor:

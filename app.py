@@ -25,6 +25,7 @@ def _get_secret(key: str) -> str:
 
 OPENAI_KEY = _get_secret("OPENAI_API_KEY")
 RAKUTEN_APP_ID = _get_secret("RAKUTEN_APP_ID")
+YAHOO_APP_ID = _get_secret("YAHOO_APP_ID")
 
 if not OPENAI_KEY:
     st.error("OPENAI_API_KEY が設定されていません。Streamlit Secrets または .env を確認してください。")
@@ -46,7 +47,7 @@ with st.sidebar:
     st.write(
         "OpenAI GPT-4o mini が家具・インテリアを提案し、"
         "DALL-E 3 が部屋の完成予想図を生成します。"
-        "楽天市場で類似商品も検索できます。"
+        "楽天市場・Yahoo!ショッピングで類似商品も検索できます。"
     )
     st.markdown("---")
     st.page_link(
@@ -77,11 +78,15 @@ if st.button("コーディネートを生成する", type="primary", use_contain
         except Exception as e:
             st.session_state.error = f"コーディネート生成に失敗しました: {e}"
 
-    # --- 2. 楽天商品検索（並列） ---
-    if st.session_state.coord_items and RAKUTEN_APP_ID:
-        with st.spinner("楽天市場で類似商品を検索しています..."):
+    # --- 2. 商品検索（楽天・Yahoo!を並列） ---
+    if st.session_state.coord_items and (RAKUTEN_APP_ID or YAHOO_APP_ID):
+        with st.spinner("楽天・Yahoo!ショッピングで類似商品を検索しています..."):
             try:
-                st.session_state.shopping_results = search_all_items(RAKUTEN_APP_ID, st.session_state.coord_items)
+                st.session_state.shopping_results = search_all_items(
+                    st.session_state.coord_items,
+                    rakuten_id=RAKUTEN_APP_ID,
+                    yahoo_id=YAHOO_APP_ID,
+                )
             except Exception as e:
                 st.warning(f"ショッピング検索に失敗しました（コーディネート提案は表示されます）: {e}")
 
@@ -134,19 +139,20 @@ if st.session_state.coord_items:
             st.write(item["reason"])
             products = shopping_results.get(item["item_name"], [])
             if products:
-                st.markdown("**楽天市場で見つかった類似商品**")
+                st.markdown("**見つかった類似商品（楽天・Yahoo!）**")
                 cols = st.columns(len(products))
                 for col, product in zip(cols, products):
                     with col:
                         if product.image_url:
                             st.image(product.image_url, use_container_width=True)
+                        st.caption(f"🏷️ {product.source}")
                         st.markdown(f"**{product.name[:40]}{'…' if len(product.name) > 40 else ''}**")
                         st.markdown(f"¥{product.price:,}")
                         if product.review_average > 0:
                             st.caption(f"★ {product.review_average:.1f}（{product.review_count:,}件）")
-                        st.link_button("楽天で見る →", product.url, use_container_width=True)
-            elif RAKUTEN_APP_ID:
-                st.caption("該当する商品が楽天市場で見つかりませんでした。")
+                        st.link_button("商品ページへ →", product.url, use_container_width=True)
+            elif RAKUTEN_APP_ID or YAHOO_APP_ID:
+                st.caption("該当する商品が見つかりませんでした。")
 
     st.markdown("---")
     st.subheader("完成予想図（AI生成）")
