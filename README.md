@@ -4,7 +4,7 @@
 
 ## デモ
 
-https://ai-interior-app-jo9wqc4auyqvb9oucjftxe.streamlit.app/
+https://ai-interior-app-emuzu-trial.streamlit.app/
 
 ## 主な機能
 
