@@ -52,6 +52,12 @@
         .bleed-layout .text-part { padding: 60px; display: flex; flex-direction: column; justify-content: center; }
         .bleed-layout .image-part { height: 720px; overflow: hidden; }
         .bleed-layout .image-part img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* 画像プレースホルダー（実スクリーンショット差し替え予定） */
+        .img-placeholder { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 2px dashed #334155; }
+        .img-placeholder i { font-size: 64px; color: #a3e635; opacity: 0.55; }
+        .img-placeholder .ph-title { font-size: 22px; color: #cbd5e1; font-weight: 700; }
+        .img-placeholder .ph-sub { font-size: 16px; color: #64748b; }
     </style>
 </head>
 <body>
@@ -114,10 +120,14 @@
             <ul style="list-style: none; padding: 0;">
                 <li style="margin-bottom: 30px;"><strong>即時可視化:</strong> 要望からフォトリアルな完成図を瞬時に生成。</li>
                 <li style="margin-bottom: 30px;"><strong>予算の厳守:</strong> 提案家具の合計を設定予算内に自動調整。</li>
-                <li><strong>ECダイレクト検索:</strong> ボタン一つで主要ECサイトの検索結果へ。</li>
+                <li><strong>EC直結:</strong> 提案アイテムごとに楽天市場の類似商品を価格・レビュー付きで自動表示。</li>
             </ul>
-            <div style="border-radius: 20px; border: 1px solid #334155; height: 400px; overflow: hidden;">
-                <img src="http://googleusercontent.com/image_collection/image_retrieval/13184294966017188755" style="width:100%; height:100%; object-fit:cover;">
+            <div style="border-radius: 20px; height: 400px; overflow: hidden;">
+                <div class="img-placeholder" style="border-radius: 20px;">
+                    <i class="fa-solid fa-image"></i>
+                    <span class="ph-title">完成予想図（AI生成）</span>
+                    <span class="ph-sub">DALL-E 3 によるレンダリング結果を表示</span>
+                </div>
             </div>
         </div>
     </div>
@@ -126,11 +136,15 @@
 <div class="slide-container bleed-layout">
     <div class="text-part">
         <h2 style="font-size: 44px; margin-bottom: 20px; color: #a3e635;">AI Rendering</h2>
-        <p>GPT-4oが言語化し、DALL-E 3が描画する「理想の部屋」。</p>
+        <p>GPT-4o miniが言語化し、DALL-E 3が描画する「理想の部屋」。</p>
         <p><strong>「あなたの部屋で実現可能な最高の結果」</strong>を視覚的に約束します。</p>
     </div>
     <div class="image-part">
-        <img src="http://googleusercontent.com/image_collection/image_retrieval/4845331553197703411">
+        <div class="img-placeholder">
+            <i class="fa-solid fa-couch"></i>
+            <span class="ph-title">AI Rendering Sample</span>
+            <span class="ph-sub">本番環境の生成画像をここに掲載</span>
+        </div>
     </div>
 </div>
 
@@ -140,9 +154,10 @@
         <div class="two-column">
             <div style="background:#020617; border: 1px solid #334155; padding: 40px; border-radius: 20px; font-family: monospace; font-size: 20px;">
                 <span style="color: #a3e635;">{</span><br>
-                &nbsp;&nbsp;"item": "Side Table",<br>
+                &nbsp;&nbsp;"item_name": "サイドテーブル",<br>
                 &nbsp;&nbsp;"price": 4500,<br>
-                &nbsp;&nbsp;"search": "北欧 モダン 黒"<br>
+                &nbsp;&nbsp;"reason": "北欧モダンに調和",<br>
+                &nbsp;&nbsp;"image_prompt": "..."<br>
                 <span style="color: #a3e635;">}</span>
             </div>
             <div>
@@ -175,9 +190,9 @@
     <h2 class="slide-title">Tech Stack：AI駆動開発</h2>
     <div class="content-area">
         <div class="tile-container">
-            <div class="tile"><h3>Python & Streamlit</h3><p>最速のUI構築とAI連携。</p></div>
-            <div class="tile"><h3>OpenAI API</h3><p>GPT-4o & DALL-E 3の活用。</p></div>
-            <div class="tile"><h3>GitHub Actions</h3><p>完全自動化されたデプロイ。</p></div>
+            <div class="tile"><h3>Python / Streamlit</h3><p>UI構築とStreamlit Cloudへのデプロイ。</p></div>
+            <div class="tile"><h3>OpenAI API</h3><p>GPT-4o mini & DALL-E 3 の活用。</p></div>
+            <div class="tile"><h3>楽天市場 API</h3><p>類似商品をリアルタイム検索。</p></div>
         </div>
     </div>
 </div>
