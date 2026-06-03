@@ -4,14 +4,15 @@ import os
 from dotenv import load_dotenv
 
 from services.openai_service import OpenAICoordinateGenerator
-from services.dalle_service import DallEImageGenerator
+from services.openai_image_service import OpenAIImageGenerator
 from services.shopping_api import search_all_items
+from services import i18n
+from services.i18n import t
 
 load_dotenv()
 
 st.set_page_config(page_title="AI Interior Coordinator", layout="wide")
-st.title("AI Interior Coordinator")
-st.caption("間取り・予算・テイストを入力するだけで、AIがインテリアコーディネートと完成予想図を提案します。")
+
 
 # --- APIキー: .env（ローカル開発）→ st.secrets（本番）の順で取得 ---
 def _get_secret(key: str) -> str:
@@ -23,12 +24,23 @@ def _get_secret(key: str) -> str:
             val = ""
     return val
 
+
 OPENAI_KEY = _get_secret("OPENAI_API_KEY")
 RAKUTEN_APP_ID = _get_secret("RAKUTEN_APP_ID")
 YAHOO_APP_ID = _get_secret("YAHOO_APP_ID")
 
+# --- 言語選択（最初に決定し、以降の全文言・AI呼び出しに反映） ---
+lang = st.sidebar.selectbox(
+    "🌐 Language / 言語",
+    list(i18n.LANGUAGES.keys()),
+    format_func=lambda c: i18n.LANGUAGES[c],
+)
+
+st.title("AI Interior Coordinator")
+st.caption(t(lang, "caption"))
+
 if not OPENAI_KEY:
-    st.error("OPENAI_API_KEY が設定されていません。Streamlit Secrets または .env を確認してください。")
+    st.error(t(lang, "err_no_openai"))
     st.stop()
 
 # --- セッション状態の初期化 ---
@@ -43,28 +55,32 @@ if "error" not in st.session_state:
 
 # --- サイドバー ---
 with st.sidebar:
-    st.header("このアプリについて")
-    st.write(
-        "OpenAI GPT-4o mini が家具・インテリアを提案し、"
-        "DALL-E 3 が部屋の完成予想図を生成します。"
-        "楽天市場・Yahoo!ショッピングで類似商品も検索できます。"
-    )
+    st.markdown("---")
+    st.header(t(lang, "about_header"))
+    st.write(t(lang, "about_body"))
     st.markdown("---")
     st.page_link(
         "https://emuzu-morishita.github.io/ai-interior-app/presentation.html",
-        label="プレゼン資料を見る",
+        label=t(lang, "presentation_link"),
     )
 
 # --- ユーザー入力 ---
 col_l, col_r = st.columns([1, 1])
 with col_l:
-    room_size = st.selectbox("間取り（広さ）", ["6畳", "8畳", "10畳", "12畳以上"])
-    taste = st.text_input("好みのテイスト（例：北欧モダン、インダストリアル）", "北欧モダン")
+    room_idx = st.selectbox(
+        t(lang, "room_size_label"),
+        range(len(i18n.ROOM_SIZE_PROMPT)),
+        format_func=lambda i: i18n.ROOM_SIZE_LABELS[lang][i],
+    )
+    taste = st.text_input(t(lang, "taste_label"), i18n.TASTE_DEFAULT[lang])
 with col_r:
-    budget = st.number_input("予算 (円)", min_value=5000, max_value=1000000, value=50000, step=5000)
-    st.metric("設定予算", f"¥{budget:,}")
+    budget = st.number_input(t(lang, "budget_label"), min_value=5000, max_value=1000000, value=50000, step=5000)
+    st.metric(t(lang, "budget_metric"), f"¥{budget:,}")
 
-if st.button("コーディネートを生成する", type="primary", use_container_width=True):
+room_prompt = i18n.ROOM_SIZE_PROMPT[room_idx]
+language_name = i18n.LANGUAGE_NAMES[lang]
+
+if st.button(t(lang, "generate_btn"), type="primary", use_container_width=True):
     # ボタンを押した瞬間に前回の結果・エラーをクリア
     st.session_state.coord_items = None
     st.session_state.shopping_results = {}
@@ -72,15 +88,17 @@ if st.button("コーディネートを生成する", type="primary", use_contain
     st.session_state.error = None
 
     # --- 1. コーディネート生成 ---
-    with st.spinner("AIがコーディネートを考えています..."):
+    with st.spinner(t(lang, "spinner_coordinate")):
         try:
-            st.session_state.coord_items = OpenAICoordinateGenerator(OPENAI_KEY).generate(room_size, budget, taste)
+            st.session_state.coord_items = OpenAICoordinateGenerator(OPENAI_KEY).generate(
+                room_prompt, budget, taste, language_name
+            )
         except Exception as e:
-            st.session_state.error = f"コーディネート生成に失敗しました: {e}"
+            st.session_state.error = t(lang, "err_coordinate", e=e)
 
     # --- 2. 商品検索（楽天・Yahoo!を並列） ---
     if st.session_state.coord_items and (RAKUTEN_APP_ID or YAHOO_APP_ID):
-        with st.spinner("楽天・Yahoo!ショッピングで類似商品を検索しています..."):
+        with st.spinner(t(lang, "spinner_shopping")):
             try:
                 st.session_state.shopping_results = search_all_items(
                     st.session_state.coord_items,
@@ -88,17 +106,17 @@ if st.button("コーディネートを生成する", type="primary", use_contain
                     yahoo_id=YAHOO_APP_ID,
                 )
             except Exception as e:
-                st.warning(f"ショッピング検索に失敗しました（コーディネート提案は表示されます）: {e}")
+                st.warning(t(lang, "warn_shopping", e=e))
 
     # --- 3. 画像生成 ---
     if st.session_state.coord_items:
-        with st.spinner("完成予想図を生成中...（約10〜20秒）"):
+        with st.spinner(t(lang, "spinner_image")):
             try:
-                st.session_state.room_image = DallEImageGenerator(OPENAI_KEY).generate(
+                st.session_state.room_image = OpenAIImageGenerator(OPENAI_KEY).generate(
                     st.session_state.coord_items[0]["image_prompt"]
                 )
             except Exception as e:
-                st.warning(f"画像生成に失敗しました: {e}")
+                st.warning(t(lang, "warn_image", e=e))
 
 # --- エラー表示 ---
 if st.session_state.error:
@@ -115,31 +133,32 @@ if st.session_state.coord_items:
 
     st.markdown("---")
     m1, m2, m3 = st.columns(3)
-    m1.metric("提案アイテム数", f"{len(items)} 点")
-    m2.metric("合計金額（目安）", f"¥{total_price:,}")
+    m1.metric(t(lang, "m_count"), t(lang, "count_unit", n=len(items)))
+    m2.metric(t(lang, "m_total"), f"¥{total_price:,}")
+    diff_label = t(lang, "diff_over") if over_budget else t(lang, "diff_under")
     m3.metric(
-        "予算との差",
-        f"{'超過' if over_budget else '余り'} ¥{abs(remaining):,}",
+        t(lang, "m_diff"),
+        f"{diff_label} ¥{abs(remaining):,}",
         delta=remaining,
         delta_color="inverse",
     )
     if over_budget:
-        st.warning(f"合計金額が予算を ¥{abs(remaining):,} 超過しています。")
+        st.warning(t(lang, "warn_over", amount=abs(remaining)))
 
-    st.subheader("予算内訳")
+    st.subheader(t(lang, "budget_breakdown"))
     chart_data = pd.DataFrame({
-        "アイテム": [item["item_name"] for item in items],
-        "金額": [item["price"] for item in items],
+        t(lang, "chart_item"): [item["item_name"] for item in items],
+        t(lang, "chart_price"): [item["price"] for item in items],
     })
-    st.bar_chart(chart_data.set_index("アイテム"))
+    st.bar_chart(chart_data.set_index(t(lang, "chart_item")))
 
-    st.subheader("提案アイテム一覧")
+    st.subheader(t(lang, "items_header"))
     for i, item in enumerate(items, 1):
         with st.expander(f"{i}. {item['item_name']} — ¥{item['price']:,}", expanded=True):
             st.write(item["reason"])
             products = shopping_results.get(item["item_name"], [])
             if products:
-                st.markdown("**見つかった類似商品（楽天・Yahoo!）**")
+                st.markdown(f"**{t(lang, 'similar_header')}**")
                 cols = st.columns(len(products))
                 for col, product in zip(cols, products):
                     with col:
@@ -149,12 +168,12 @@ if st.session_state.coord_items:
                         st.markdown(f"**{product.name[:40]}{'…' if len(product.name) > 40 else ''}**")
                         st.markdown(f"¥{product.price:,}")
                         if product.review_average > 0:
-                            st.caption(f"★ {product.review_average:.1f}（{product.review_count:,}件）")
-                        st.link_button("商品ページへ →", product.url, use_container_width=True)
+                            st.caption(t(lang, "review_fmt", avg=product.review_average, count=product.review_count))
+                        st.link_button(t(lang, "product_button"), product.url, use_container_width=True)
             elif RAKUTEN_APP_ID or YAHOO_APP_ID:
-                st.caption("該当する商品が見つかりませんでした。")
+                st.caption(t(lang, "no_products"))
 
     st.markdown("---")
-    st.subheader("完成予想図（AI生成）")
+    st.subheader(t(lang, "preview_header"))
     if st.session_state.room_image:
-        st.image(st.session_state.room_image, caption="AIが提案する理想のレイアウト", use_container_width=True)
+        st.image(st.session_state.room_image, caption=t(lang, "preview_caption"), use_container_width=True)

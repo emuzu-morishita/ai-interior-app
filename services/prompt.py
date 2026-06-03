@@ -1,4 +1,4 @@
-def build_coordinate_prompt(room_size: str, budget: int, taste: str) -> str:
+def build_coordinate_prompt(room_size: str, budget: int, taste: str, language: str = "Japanese") -> str:
     return f"""
 あなたはプロのインテリアコーディネーターです。
 以下の条件に合わせた家具・インテリアの提案を3〜5アイテム、必ず指定されたJSONフォーマットのみで出力してください。
@@ -7,6 +7,10 @@ def build_coordinate_prompt(room_size: str, budget: int, taste: str) -> str:
 - 広さ: {room_size}
 - 予算合計: {budget}円（全アイテムの合計金額が予算内に収まるよう配分すること）
 - テイスト: {taste}
+
+【出力言語の厳守事項】
+item_name と reason の各フィールドは、必ず {language} で記述してください。
+ただし image_prompt は画像生成精度のため、言語設定にかかわらず必ず英語で記述すること。
 
 【予算が低い場合のルール】
 予算が20,000円未満の場合は、大型家具の提案は避け、照明・クッション・ラグ・観葉植物など
@@ -26,7 +30,7 @@ ITEM_JSON_SCHEMA = {
         "item_name": {"type": "string", "description": "家具・小物の名前"},
         "price": {"type": "integer", "description": "概算金額（円）"},
         "reason": {"type": "string", "description": "選定した理由"},
-        "image_prompt": {"type": "string", "description": "Stable Diffusion / DALL-E用の高精細な英語画像生成プロンプト"},
+        "image_prompt": {"type": "string", "description": "画像生成用の高精細な英語プロンプト（言語設定にかかわらず常に英語）"},
     },
     "required": ["item_name", "price", "reason", "image_prompt"],
     "additionalProperties": False,

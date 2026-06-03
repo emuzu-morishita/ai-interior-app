@@ -6,7 +6,7 @@ class CoordinateGeneratorBase(ABC):
     """インテリアコーディネート提案を生成するプロバイダーの共通インターフェース。"""
 
     @abstractmethod
-    def generate(self, room_size: str, budget: int, taste: str) -> list[dict]:
+    def generate(self, room_size: str, budget: int, taste: str, language: str = "Japanese") -> list[dict]:
         """提案アイテムのリストを返す。各要素は item_name / price / reason / image_prompt を持つ。"""
         ...
 
