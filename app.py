@@ -25,18 +25,20 @@ if st.button("コーディネートを生成する"):
         # クライアントの初期化
         client = genai.Client(api_key=gemini_key)
         
-        # AIへの指示（プロンプト）
+        # prompt = f""" の中に以下の【画像生成に関する厳守事項】を追記します
         prompt = f"""
         あなたはプロのインテリアコーディネーターです。
         以下の条件に合わせた家具の提案を、必ず指定されたJSONフォーマットのみで出力してください。
-        
+
         【条件】
         - 広さ: {room_size}
         - 予算: {budget}円
         - テイスト: {taste}
-        
-        【厳守事項】
-        予算が5,000円など極端に低い場合は、大型家具ではなく、間接照明やクッションなどの小物で部屋の質感を上げる代替案を提案してください。
+
+        【画像生成に関する厳守事項】
+        image_promptには、家具単体や部屋の一部ではなく、「部屋全体のレイアウトと空間の広がりがすべて見渡せる画像」を作るための英語プロンプトを出力してください。
+        必ず、以下のカメラワークに関する英語のキーワードを複数含めること。
+        キーワード例: "Ultra-wide angle shot" (超広角レンズ), "Full room view" (部屋の全体像), "Showcasing the entire room layout" (部屋全体のレイアウトを見せる), "Architectural photography style" (建築写真スタイル)
         """
 
         # GeminiにJSONの形（スキーマ）を教えて、強制的にその形で出力させる設定
@@ -85,9 +87,9 @@ if st.button("コーディネートを生成する"):
                     "accept": "image/*"
                 }
                 data = {
-                    "prompt": result_json['image_prompt'], # Geminiが作ったプロンプトをそのまま投入！
+                    "prompt": result_json['image_prompt'],
                     "output_format": "jpeg",
-                    "aspect_ratio": "1:1" # 正方形
+                    "aspect_ratio": "16:9"
                 }
 
                 response = requests.post(url, headers=headers, files={"none": ''}, data=data)
