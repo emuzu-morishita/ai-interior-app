@@ -53,12 +53,6 @@
         .bleed-layout .image-part { height: 720px; overflow: hidden; }
         .bleed-layout .image-part img { width: 100%; height: 100%; object-fit: cover; }
 
-        /* 画像プレースホルダー（実スクリーンショット差し替え予定） */
-        .img-placeholder { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 2px dashed #334155; }
-        .img-placeholder i { font-size: 64px; color: #a3e635; opacity: 0.55; }
-        .img-placeholder .ph-title { font-size: 22px; color: #cbd5e1; font-weight: 700; }
-        .img-placeholder .ph-sub { font-size: 16px; color: #64748b; }
-
         /* コードブロック（構造化データ） */
         .code-block { background: #0b1221; border: 1px solid #334155; padding: 36px 40px; border-radius: 20px; font-family: 'Consolas', 'Courier New', monospace; font-size: 20px; line-height: 1.9; color: #e2e8f0; box-shadow: inset 0 0 40px rgba(0,0,0,0.4); }
         .code-block .c-brace { color: #64748b; }
@@ -139,14 +133,10 @@
             <ul style="list-style: none; padding: 0;">
                 <li style="margin-bottom: 30px;"><strong>即時可視化:</strong> 要望からフォトリアルな完成図を瞬時に生成。</li>
                 <li style="margin-bottom: 30px;"><strong>予算の厳守:</strong> 提案家具の合計を設定予算内に自動調整。</li>
-                <li><strong>EC直結:</strong> 提案アイテムごとに楽天市場の類似商品を価格・レビュー付きで自動表示。</li>
+                <li><strong>EC直結:</strong> 提案アイテムごとに楽天市場・Yahoo!ショッピングの類似商品を価格・レビュー付きで自動表示。</li>
             </ul>
             <div style="border-radius: 20px; height: 400px; overflow: hidden;">
-                <div class="img-placeholder" style="border-radius: 20px;">
-                    <i class="fa-solid fa-image"></i>
-                    <span class="ph-title">完成予想図（AI生成）</span>
-                    <span class="ph-sub">gpt-image-1 によるレンダリング結果を表示</span>
-                </div>
+                <img src="assets/preview_living.jpg" alt="AI生成のリビング完成予想図" style="width:100%; height:100%; object-fit:cover;">
             </div>
         </div>
     </div>
@@ -159,11 +149,7 @@
         <p><strong>「あなたの部屋で実現可能な最高の結果」</strong>を視覚的に約束します。</p>
     </div>
     <div class="image-part">
-        <div class="img-placeholder">
-            <i class="fa-solid fa-couch"></i>
-            <span class="ph-title">AI Rendering Sample</span>
-            <span class="ph-sub">本番環境の生成画像をここに掲載</span>
-        </div>
+        <img src="assets/preview_bedroom.jpg" alt="AI生成の寝室完成予想図">
     </div>
 </div>
 
