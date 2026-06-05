@@ -27,6 +27,8 @@ def _get_secret(key: str) -> str:
 
 OPENAI_KEY = _get_secret("OPENAI_API_KEY")
 RAKUTEN_APP_ID = _get_secret("RAKUTEN_APP_ID")
+RAKUTEN_ACCESS_KEY = _get_secret("RAKUTEN_ACCESS_KEY")
+RAKUTEN_ORIGIN = _get_secret("RAKUTEN_ORIGIN")
 YAHOO_APP_ID = _get_secret("YAHOO_APP_ID")
 
 # --- 言語選択（最初に決定し、以降の全文言・AI呼び出しに反映） ---
@@ -97,12 +99,15 @@ if st.button(t(lang, "generate_btn"), type="primary", use_container_width=True):
             st.session_state.error = t(lang, "err_coordinate", e=e)
 
     # --- 2. 商品検索（楽天・Yahoo!を並列） ---
-    if st.session_state.coord_items and (RAKUTEN_APP_ID or YAHOO_APP_ID):
+    shopping_enabled = (RAKUTEN_APP_ID and RAKUTEN_ACCESS_KEY) or YAHOO_APP_ID
+    if st.session_state.coord_items and shopping_enabled:
         with st.spinner(t(lang, "spinner_shopping")):
             try:
                 st.session_state.shopping_results = search_all_items(
                     st.session_state.coord_items,
                     rakuten_id=RAKUTEN_APP_ID,
+                    rakuten_access_key=RAKUTEN_ACCESS_KEY,
+                    rakuten_origin=RAKUTEN_ORIGIN,
                     yahoo_id=YAHOO_APP_ID,
                 )
             except Exception as e:
@@ -170,7 +175,7 @@ if st.session_state.coord_items:
                         if product.review_average > 0:
                             st.caption(t(lang, "review_fmt", avg=product.review_average, count=product.review_count))
                         st.link_button(t(lang, "product_button"), product.url, use_container_width=True)
-            elif RAKUTEN_APP_ID or YAHOO_APP_ID:
+            elif (RAKUTEN_APP_ID and RAKUTEN_ACCESS_KEY) or YAHOO_APP_ID:
                 st.caption(t(lang, "no_products"))
 
     st.markdown("---")

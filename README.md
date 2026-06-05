@@ -61,13 +61,17 @@ cp .env.example .env
 
 ```env
 OPENAI_API_KEY=sk-...
-RAKUTEN_APP_ID=...
+RAKUTEN_APP_ID=...            # UUID形式のapplicationId
+RAKUTEN_ACCESS_KEY=pk_...     # pk_で始まるアクセスキー
+RAKUTEN_ORIGIN=https://...    # 登録した「許可されたWebサイト」
+YAHOO_APP_ID=...              # Yahoo!ショッピングのClient ID
 ```
 
 | キー | 取得先 |
 |---|---|
 | `OPENAI_API_KEY` | https://platform.openai.com/api-keys |
-| `RAKUTEN_APP_ID` | https://webservice.rakuten.co.jp/ |
+| `RAKUTEN_APP_ID` / `RAKUTEN_ACCESS_KEY` | https://webservice.rakuten.co.jp/ （2026年新仕様：ID+キー必須） |
+| `YAHOO_APP_ID` | https://e.developer.yahoo.co.jp/register |
 
 ### 5. アプリを起動
 
@@ -85,6 +89,9 @@ streamlit run app.py
 ```toml
 OPENAI_API_KEY = "sk-..."
 RAKUTEN_APP_ID = "..."
+RAKUTEN_ACCESS_KEY = "pk_..."
+RAKUTEN_ORIGIN = "https://..."
+YAHOO_APP_ID = "..."
 ```
 
 ## プロジェクト構成
