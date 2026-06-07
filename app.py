@@ -2,11 +2,13 @@ import streamlit as st
 import pandas as pd
 import os
 import html as html_lib
+from datetime import datetime
 from dotenv import load_dotenv
 
 from services.openai_service import OpenAICoordinateGenerator
 from services.openai_image_service import OpenAIImageGenerator
 from services.shopping_api import search_all_items
+from services.report import build_html_report
 from services import i18n
 from services.i18n import t
 
@@ -27,7 +29,7 @@ st.markdown(
 .hero h1 { margin: 0; font-size: 36px; font-weight: 800; letter-spacing: .5px; color:#fff; }
 .hero p { margin: 10px 0 0; font-size: 16px; opacity: .93; }
 
-/* 類似商品カード（件数に関係なく固定サイズで表示） */
+/* おすすめ商品カード（件数に関係なく固定サイズで表示） */
 .sim-row { display: flex; flex-wrap: wrap; gap: 14px; margin: 8px 0 4px; }
 .sim-card { width: 165px; background: #ffffff; border: 1px solid #e7e3d8;
   border-radius: 14px; padding: 10px; box-shadow: 0 2px 10px rgba(0,0,0,.05);
@@ -84,7 +86,7 @@ def _get_secret(key: str) -> str:
 
 
 def _render_products(products, lang: str) -> str:
-    """類似商品を固定サイズのHTMLカード列としてレンダリングする。"""
+    """おすすめ商品を固定サイズのHTMLカード列としてレンダリングする。"""
     cards = []
     for p in products:
         name = html_lib.escape(p.name[:40] + ("…" if len(p.name) > 40 else ""))
@@ -259,6 +261,26 @@ if st.session_state.coord_items:
     if over_budget:
         st.warning(t(lang, "warn_over", amount=abs(remaining)))
 
+    # --- 結果の保存（リロードで消える前にHTMLレポートとして手元に残す） ---
+    report_html = build_html_report(
+        items,
+        shopping_results,
+        st.session_state.room_image,
+        lang=lang,
+        room_label=i18n.ROOM_SIZE_LABELS[lang][room_idx],
+        taste=taste,
+        budget=budget,
+        generated_at=datetime.now().strftime("%Y-%m-%d %H:%M"),
+    )
+    st.download_button(
+        t(lang, "download_btn"),
+        data=report_html,
+        file_name=f"ai-interior-proposal_{datetime.now().strftime('%Y%m%d_%H%M')}.html",
+        mime="text/html",
+        use_container_width=True,
+    )
+    st.caption(t(lang, "download_caption"))
+
     st.subheader("📊 " + t(lang, "budget_breakdown"))
     chart_data = pd.DataFrame({
         t(lang, "chart_item"): [item["item_name"] for item in items],
@@ -272,7 +294,7 @@ if st.session_state.coord_items:
             st.write(item["reason"])
             products = shopping_results.get(item["item_name"], [])
             if products:
-                st.markdown(f"**{t(lang, 'similar_header')}**")
+                st.markdown(f"**{t(lang, 'recommend_header')}**")
                 st.markdown(_render_products(products, lang), unsafe_allow_html=True)
             elif (RAKUTEN_APP_ID and RAKUTEN_ACCESS_KEY) or YAHOO_APP_ID:
                 st.caption(t(lang, "no_products"))
