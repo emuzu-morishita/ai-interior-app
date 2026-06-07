@@ -68,6 +68,14 @@ st.markdown(
   background: #2b2b28; color: #fff !important; border-radius: 9px; text-decoration: none;
   font-size: 13px; font-weight: 700; }
 .sb-link:hover { background: #4d7c0f; }
+
+/* 保存（ダウンロード）ボタン：保存操作だと一目で分かるよう濃色で強調 */
+[data-testid="stDownloadButton"] button { background: #2b2b28 !important;
+  color: #fff !important; border: 0 !important; border-radius: 10px !important;
+  font-weight: 700 !important; padding: 11px 0 !important;
+  box-shadow: 0 4px 14px rgba(43,43,40,.18); transition: background .15s ease, transform .15s ease; }
+[data-testid="stDownloadButton"] button:hover { background: #4d7c0f !important; transform: translateY(-1px); }
+[data-testid="stDownloadButton"] button p { font-size: 15px !important; font-weight: 700 !important; }
 </style>
 """,
     unsafe_allow_html=True,
