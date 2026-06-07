@@ -256,6 +256,26 @@ if st.session_state.coord_items:
     over_budget = remaining < 0
 
     st.markdown("---")
+
+    # 1. 完成予想図（一番上） ※画像が無い場合は見出しごとスキップ
+    if st.session_state.room_image:
+        st.subheader("🖼️ " + t(lang, "preview_header"))
+        st.image(st.session_state.room_image, caption=t(lang, "preview_caption"), use_container_width=True)
+
+    # 2. 提案アイテム一覧
+    st.subheader("🛋️ " + t(lang, "items_header"))
+    for i, item in enumerate(items, 1):
+        with st.expander(f"{i}. {item['item_name']} — ¥{item['price']:,}", expanded=True):
+            st.write(item["reason"])
+            products = shopping_results.get(item["item_name"], [])
+            if products:
+                st.markdown(f"**{t(lang, 'recommend_header')}**")
+                st.markdown(_render_products(products, lang), unsafe_allow_html=True)
+            elif (RAKUTEN_APP_ID and RAKUTEN_ACCESS_KEY) or YAHOO_APP_ID:
+                st.caption(t(lang, "no_products"))
+
+    # 3. 値段等の概要（メトリクス + 予算内訳）
+    st.markdown("---")
     m1, m2, m3 = st.columns(3)
     m1.metric(t(lang, "m_count"), t(lang, "count_unit", n=len(items)))
     m2.metric(t(lang, "m_total"), f"¥{total_price:,}")
@@ -269,7 +289,15 @@ if st.session_state.coord_items:
     if over_budget:
         st.warning(t(lang, "warn_over", amount=abs(remaining)))
 
-    # --- 結果の保存（リロードで消える前に好きな形式で手元に残す） ---
+    st.subheader("📊 " + t(lang, "budget_breakdown"))
+    chart_data = pd.DataFrame({
+        t(lang, "chart_item"): [item["item_name"] for item in items],
+        t(lang, "chart_price"): [item["price"] for item in items],
+    })
+    st.bar_chart(chart_data.set_index(t(lang, "chart_item")))
+
+    # 4. 保存ボタン（最後）：リロードで消える前に好きな形式で手元に残す
+    st.markdown("---")
     fmt = st.radio(t(lang, "save_format_label"), ["HTML", "PDF", "Excel"], horizontal=True)
     report_args = (items, shopping_results, st.session_state.room_image)
     report_kwargs = dict(
@@ -299,26 +327,3 @@ if st.session_state.coord_items:
     except Exception as e:
         st.warning(t(lang, "warn_save", e=e))
     st.caption(t(lang, "download_caption"))
-
-    st.subheader("📊 " + t(lang, "budget_breakdown"))
-    chart_data = pd.DataFrame({
-        t(lang, "chart_item"): [item["item_name"] for item in items],
-        t(lang, "chart_price"): [item["price"] for item in items],
-    })
-    st.bar_chart(chart_data.set_index(t(lang, "chart_item")))
-
-    st.subheader("🛋️ " + t(lang, "items_header"))
-    for i, item in enumerate(items, 1):
-        with st.expander(f"{i}. {item['item_name']} — ¥{item['price']:,}", expanded=True):
-            st.write(item["reason"])
-            products = shopping_results.get(item["item_name"], [])
-            if products:
-                st.markdown(f"**{t(lang, 'recommend_header')}**")
-                st.markdown(_render_products(products, lang), unsafe_allow_html=True)
-            elif (RAKUTEN_APP_ID and RAKUTEN_ACCESS_KEY) or YAHOO_APP_ID:
-                st.caption(t(lang, "no_products"))
-
-    st.markdown("---")
-    st.subheader("🖼️ " + t(lang, "preview_header"))
-    if st.session_state.room_image:
-        st.image(st.session_state.room_image, caption=t(lang, "preview_caption"), use_container_width=True)
