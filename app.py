@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from services.openai_service import OpenAICoordinateGenerator
 from services.openai_image_service import OpenAIImageGenerator
 from services.shopping_api import search_all_items
-from services.report import build_html_report
+from services.report import build_html_report, build_pdf_report, build_excel_report
 from services import i18n
 from services.i18n import t
 
@@ -269,24 +269,35 @@ if st.session_state.coord_items:
     if over_budget:
         st.warning(t(lang, "warn_over", amount=abs(remaining)))
 
-    # --- 結果の保存（リロードで消える前にHTMLレポートとして手元に残す） ---
-    report_html = build_html_report(
-        items,
-        shopping_results,
-        st.session_state.room_image,
+    # --- 結果の保存（リロードで消える前に好きな形式で手元に残す） ---
+    fmt = st.radio(t(lang, "save_format_label"), ["HTML", "PDF", "Excel"], horizontal=True)
+    report_args = (items, shopping_results, st.session_state.room_image)
+    report_kwargs = dict(
         lang=lang,
         room_label=i18n.ROOM_SIZE_LABELS[lang][room_idx],
         taste=taste,
         budget=budget,
         generated_at=datetime.now().strftime("%Y-%m-%d %H:%M"),
     )
-    st.download_button(
-        t(lang, "download_btn"),
-        data=report_html,
-        file_name=f"ai-interior-proposal_{datetime.now().strftime('%Y%m%d_%H%M')}.html",
-        mime="text/html",
-        use_container_width=True,
-    )
+    stamp = datetime.now().strftime("%Y%m%d_%H%M")
+    _XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    builders = {
+        "HTML": (build_html_report, "html", "text/html"),
+        "PDF": (build_pdf_report, "pdf", "application/pdf"),
+        "Excel": (build_excel_report, "xlsx", _XLSX_MIME),
+    }
+    builder, ext, mime = builders[fmt]
+    try:
+        data = builder(*report_args, **report_kwargs)
+        st.download_button(
+            t(lang, "download_btn"),
+            data=data,
+            file_name=f"ai-interior-proposal_{stamp}.{ext}",
+            mime=mime,
+            use_container_width=True,
+        )
+    except Exception as e:
+        st.warning(t(lang, "warn_save", e=e))
     st.caption(t(lang, "download_caption"))
 
     st.subheader("📊 " + t(lang, "budget_breakdown"))

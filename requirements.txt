@@ -4,3 +4,5 @@ requests
 Pillow
 python-dotenv
 pandas
+reportlab
+openpyxl
