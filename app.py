@@ -76,6 +76,11 @@ st.markdown(
   box-shadow: 0 4px 14px rgba(43,43,40,.18); transition: background .15s ease, transform .15s ease; }
 [data-testid="stDownloadButton"] button:hover { background: #4d7c0f !important; transform: translateY(-1px); }
 [data-testid="stDownloadButton"] button p { font-size: 15px !important; font-weight: 700 !important; }
+
+/* 完成予想図の下に置く説明文ブロック */
+.preview-desc { background: #f1efe8; border-left: 4px solid #4d7c0f;
+  border-radius: 8px; padding: 12px 16px; margin: 12px 0 4px;
+  font-size: 14px; color: #4a4a44; line-height: 1.65; }
 </style>
 """,
     unsafe_allow_html=True,
@@ -260,7 +265,11 @@ if st.session_state.coord_items:
     # 1. 完成予想図（一番上） ※画像が無い場合は見出しごとスキップ
     if st.session_state.room_image:
         st.subheader("🖼️ " + t(lang, "preview_header"))
-        st.image(st.session_state.room_image, caption=t(lang, "preview_caption"), use_container_width=True)
+        st.image(st.session_state.room_image, use_container_width=True)
+        st.markdown(
+            f'<div class="preview-desc">💡 {html_lib.escape(t(lang, "preview_caption"))}</div>',
+            unsafe_allow_html=True,
+        )
 
     # 2. 提案アイテム一覧
     st.subheader("🛋️ " + t(lang, "items_header"))
