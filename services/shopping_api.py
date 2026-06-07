@@ -35,7 +35,7 @@ def search_rakuten(
         "applicationId": app_id,
         "accessKey": access_key,
         "keyword": keyword,
-        "hits": 9,  # 多めに取得して価格でソート後に絞る
+        "hits": hits,
         "minPrice": max(100, int(suggested_price * 0.3)),
         "maxPrice": int(suggested_price * 2.5),
         "sort": "+itemPrice",

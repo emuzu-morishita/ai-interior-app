@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
+import html as html_lib
 from dotenv import load_dotenv
 
 from services.openai_service import OpenAICoordinateGenerator
@@ -11,7 +12,64 @@ from services.i18n import t
 
 load_dotenv()
 
-st.set_page_config(page_title="AI Interior Coordinator", layout="wide")
+st.set_page_config(page_title="AI Interior Coordinator", page_icon="🛋️", layout="wide")
+
+# --- 全体スタイル（ヒーローバナー・商品カード） ---
+st.markdown(
+    """
+<style>
+.block-container { padding-top: 2.2rem; }
+
+/* ヒーローバナー */
+.hero { background: linear-gradient(120deg, #4d7c0f 0%, #84a98c 100%);
+  border-radius: 22px; padding: 30px 40px; color: #ffffff; margin-bottom: 18px;
+  box-shadow: 0 10px 28px rgba(77,124,15,0.20); }
+.hero h1 { margin: 0; font-size: 36px; font-weight: 800; letter-spacing: .5px; color:#fff; }
+.hero p { margin: 10px 0 0; font-size: 16px; opacity: .93; }
+
+/* 類似商品カード（件数に関係なく固定サイズで表示） */
+.sim-row { display: flex; flex-wrap: wrap; gap: 14px; margin: 8px 0 4px; }
+.sim-card { width: 165px; background: #ffffff; border: 1px solid #e7e3d8;
+  border-radius: 14px; padding: 10px; box-shadow: 0 2px 10px rgba(0,0,0,.05);
+  transition: transform .15s ease, box-shadow .15s ease; }
+.sim-card:hover { transform: translateY(-3px); box-shadow: 0 10px 22px rgba(0,0,0,.10); }
+.sim-img { width: 100%; aspect-ratio: 1 / 1; border-radius: 10px;
+  background-size: cover; background-position: center; background-color: #f1efe8; }
+.sim-badge { display: inline-block; font-size: 10px; font-weight: 700; color: #4d7c0f;
+  background: #eef3e3; border-radius: 6px; padding: 2px 7px; margin-top: 9px; }
+.sim-name { font-size: 12px; line-height: 1.35; height: 34px; overflow: hidden;
+  margin-top: 6px; color: #3a3a36; }
+.sim-price { font-size: 17px; font-weight: 800; color: #2b2b28; margin-top: 6px; }
+.sim-review { font-size: 11px; color: #9a8f7d; margin-top: 2px; }
+.sim-btn { display: block; text-align: center; margin-top: 10px; padding: 7px 0;
+  background: #4d7c0f; color: #fff !important; border-radius: 8px;
+  text-decoration: none; font-size: 12px; font-weight: 700; }
+.sim-btn:hover { background: #3f6a0c; }
+
+/* サイドバー装飾 */
+[data-testid="stSidebar"] { border-right: 1px solid #e7e3d8; }
+.sb-brand { background: linear-gradient(135deg, #4d7c0f 0%, #84a98c 100%);
+  border-radius: 16px; padding: 18px; color: #fff; margin: 0 0 16px; text-align: center;
+  box-shadow: 0 6px 18px rgba(77,124,15,.18); }
+.sb-brand .sb-ic { font-size: 30px; line-height: 1; }
+.sb-brand .sb-tt { font-size: 17px; font-weight: 800; margin-top: 6px; }
+.sb-brand .sb-sub { font-size: 10px; opacity: .9; margin-top: 3px; letter-spacing: 1.5px; }
+.sb-h { font-size: 12px; font-weight: 800; color: #4d7c0f; letter-spacing: 1px;
+  text-transform: uppercase; margin: 18px 0 9px; }
+.sb-card { background: #ffffff; border: 1px solid #e7e3d8; border-left: 4px solid #4d7c0f;
+  border-radius: 10px; padding: 12px 14px; font-size: 13px; color: #4a4a44; line-height: 1.65; }
+.sb-step { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 11px; }
+.sb-step .n { flex: none; width: 24px; height: 24px; border-radius: 50%; background: #4d7c0f;
+  color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.sb-step .tx { font-size: 13px; color: #3a3a36; line-height: 1.4; padding-top: 2px; }
+.sb-link { display: block; text-align: center; margin-top: 8px; padding: 9px;
+  background: #2b2b28; color: #fff !important; border-radius: 9px; text-decoration: none;
+  font-size: 13px; font-weight: 700; }
+.sb-link:hover { background: #4d7c0f; }
+</style>
+""",
+    unsafe_allow_html=True,
+)
 
 
 # --- APIキー: .env（ローカル開発）→ st.secrets（本番）の順で取得 ---
@@ -25,21 +83,57 @@ def _get_secret(key: str) -> str:
     return val
 
 
+def _render_products(products, lang: str) -> str:
+    """類似商品を固定サイズのHTMLカード列としてレンダリングする。"""
+    cards = []
+    for p in products:
+        name = html_lib.escape(p.name[:40] + ("…" if len(p.name) > 40 else ""))
+        badge = html_lib.escape(p.source)
+        img = html_lib.escape(p.image_url or "", quote=True)
+        url = html_lib.escape(p.url or "", quote=True)
+        review = ""
+        if p.review_average > 0:
+            review = f'<div class="sim-review">{t(lang, "review_fmt", avg=p.review_average, count=p.review_count)}</div>'
+        cards.append(
+            f'<div class="sim-card">'
+            f'<div class="sim-img" style="background-image:url(\'{img}\')"></div>'
+            f'<span class="sim-badge">🏷️ {badge}</span>'
+            f'<div class="sim-name">{name}</div>'
+            f'<div class="sim-price">¥{p.price:,}</div>'
+            f'{review}'
+            f'<a class="sim-btn" href="{url}" target="_blank" rel="noopener">{t(lang, "product_button")}</a>'
+            f'</div>'
+        )
+    return f'<div class="sim-row">{"".join(cards)}</div>'
+
+
 OPENAI_KEY = _get_secret("OPENAI_API_KEY")
 RAKUTEN_APP_ID = _get_secret("RAKUTEN_APP_ID")
 RAKUTEN_ACCESS_KEY = _get_secret("RAKUTEN_ACCESS_KEY")
 RAKUTEN_ORIGIN = _get_secret("RAKUTEN_ORIGIN")
 YAHOO_APP_ID = _get_secret("YAHOO_APP_ID")
 
-# --- 言語選択（最初に決定し、以降の全文言・AI呼び出しに反映） ---
+# --- サイドバー：ブランドカード + 言語選択（最初に決定） ---
+PRESENTATION_URL = "https://emuzu-morishita.github.io/ai-interior-app/presentation.html"
+
+st.sidebar.markdown(
+    '<div class="sb-brand"><div class="sb-ic">🛋️</div>'
+    '<div class="sb-tt">AI Interior Coordinator</div>'
+    '<div class="sb-sub">AI INTERIOR STUDIO</div></div>',
+    unsafe_allow_html=True,
+)
+
 lang = st.sidebar.selectbox(
     "🌐 Language / 言語",
     list(i18n.LANGUAGES.keys()),
     format_func=lambda c: i18n.LANGUAGES[c],
 )
 
-st.title("AI Interior Coordinator")
-st.caption(t(lang, "caption"))
+st.markdown(
+    f'<div class="hero"><h1>🛋️ AI Interior Coordinator</h1>'
+    f'<p>{html_lib.escape(t(lang, "caption"))}</p></div>',
+    unsafe_allow_html=True,
+)
 
 if not OPENAI_KEY:
     st.error(t(lang, "err_no_openai"))
@@ -55,15 +149,23 @@ if "room_image" not in st.session_state:
 if "error" not in st.session_state:
     st.session_state.error = None
 
-# --- サイドバー ---
+# --- サイドバー本体 ---
 with st.sidebar:
-    st.markdown("---")
-    st.header(t(lang, "about_header"))
-    st.write(t(lang, "about_body"))
-    st.markdown("---")
-    st.page_link(
-        "https://emuzu-morishita.github.io/ai-interior-app/presentation.html",
-        label=t(lang, "presentation_link"),
+    st.markdown(f'<div class="sb-h">ℹ️ {html_lib.escape(t(lang, "about_header"))}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="sb-card">{html_lib.escape(t(lang, "about_body"))}</div>', unsafe_allow_html=True)
+
+    st.markdown(f'<div class="sb-h">✨ {html_lib.escape(t(lang, "how_header"))}</div>', unsafe_allow_html=True)
+    steps_html = "".join(
+        f'<div class="sb-step"><div class="n">{i}</div>'
+        f'<div class="tx">{html_lib.escape(t(lang, f"step{i}"))}</div></div>'
+        for i in (1, 2, 3)
+    )
+    st.markdown(steps_html, unsafe_allow_html=True)
+
+    st.markdown(
+        f'<a class="sb-link" href="{PRESENTATION_URL}" target="_blank" rel="noopener">'
+        f'📊 {html_lib.escape(t(lang, "presentation_link"))}</a>',
+        unsafe_allow_html=True,
     )
 
 # --- ユーザー入力 ---
@@ -74,7 +176,14 @@ with col_l:
         range(len(i18n.ROOM_SIZE_PROMPT)),
         format_func=lambda i: i18n.ROOM_SIZE_LABELS[lang][i],
     )
-    taste = st.text_input(t(lang, "taste_label"), i18n.TASTE_DEFAULT[lang])
+    taste_other = t(lang, "taste_other")
+    taste_choice = st.selectbox(t(lang, "taste_label"), i18n.TASTE_OPTIONS[lang] + [taste_other])
+    if taste_choice == taste_other:
+        taste = st.text_input(
+            t(lang, "taste_other_label"), "", placeholder=i18n.TASTE_DEFAULT[lang]
+        ).strip() or i18n.TASTE_DEFAULT[lang]
+    else:
+        taste = taste_choice
 with col_r:
     budget = st.number_input(t(lang, "budget_label"), min_value=5000, max_value=1000000, value=50000, step=5000)
     st.metric(t(lang, "budget_metric"), f"¥{budget:,}")
@@ -150,35 +259,25 @@ if st.session_state.coord_items:
     if over_budget:
         st.warning(t(lang, "warn_over", amount=abs(remaining)))
 
-    st.subheader(t(lang, "budget_breakdown"))
+    st.subheader("📊 " + t(lang, "budget_breakdown"))
     chart_data = pd.DataFrame({
         t(lang, "chart_item"): [item["item_name"] for item in items],
         t(lang, "chart_price"): [item["price"] for item in items],
     })
     st.bar_chart(chart_data.set_index(t(lang, "chart_item")))
 
-    st.subheader(t(lang, "items_header"))
+    st.subheader("🛋️ " + t(lang, "items_header"))
     for i, item in enumerate(items, 1):
         with st.expander(f"{i}. {item['item_name']} — ¥{item['price']:,}", expanded=True):
             st.write(item["reason"])
             products = shopping_results.get(item["item_name"], [])
             if products:
                 st.markdown(f"**{t(lang, 'similar_header')}**")
-                cols = st.columns(len(products))
-                for col, product in zip(cols, products):
-                    with col:
-                        if product.image_url:
-                            st.image(product.image_url, use_container_width=True)
-                        st.caption(f"🏷️ {product.source}")
-                        st.markdown(f"**{product.name[:40]}{'…' if len(product.name) > 40 else ''}**")
-                        st.markdown(f"¥{product.price:,}")
-                        if product.review_average > 0:
-                            st.caption(t(lang, "review_fmt", avg=product.review_average, count=product.review_count))
-                        st.link_button(t(lang, "product_button"), product.url, use_container_width=True)
+                st.markdown(_render_products(products, lang), unsafe_allow_html=True)
             elif (RAKUTEN_APP_ID and RAKUTEN_ACCESS_KEY) or YAHOO_APP_ID:
                 st.caption(t(lang, "no_products"))
 
     st.markdown("---")
-    st.subheader(t(lang, "preview_header"))
+    st.subheader("🖼️ " + t(lang, "preview_header"))
     if st.session_state.room_image:
         st.image(st.session_state.room_image, caption=t(lang, "preview_caption"), use_container_width=True)
