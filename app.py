@@ -276,6 +276,8 @@ if st.session_state.coord_items:
     for i, item in enumerate(items, 1):
         with st.expander(f"{i}. {item['item_name']} — ¥{item['price']:,}", expanded=True):
             st.write(item["reason"])
+            if item.get("placement"):
+                st.info(f"📐 **{t(lang, 'placement_label')}** {item['placement']}")
             products = shopping_results.get(item["item_name"], [])
             if products:
                 st.markdown(f"**{t(lang, 'recommend_header')}**")
