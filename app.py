@@ -47,6 +47,14 @@ st.markdown(
   }
 }
 
+/* ── Streamlit 既定UIを隠す（商用アプリらしくヘッダーをすっきり） ── */
+[data-testid="stToolbar"]      { display: none !important; }  /* 右上 Deploy/⋮ メニュー */
+[data-testid="stDeployButton"] { display: none !important; }  /* Deploy ボタン */
+[data-testid="stDecoration"]   { display: none !important; }  /* 上部の虹色ライン */
+#MainMenu                      { visibility: hidden; }
+footer                         { visibility: hidden; }
+[data-testid="stHeader"]       { background: transparent; }   /* ヘッダー帯を透明化（サイドバー開閉ボタンは残す） */
+
 /* ── レイアウト ─────────────────────────────── */
 .block-container { padding-top: 2.2rem; }
 
@@ -470,8 +478,11 @@ if st.button(t(lang, "generate_btn"), type="primary", use_container_width=True):
         "owned_items": owned_items,
     }
 
-    # --- 1. コーディネート生成 ---
-    with st.spinner(t(lang, "spinner_coordinate")):
+    # --- 生成パイプライン（st.status でステップ形式に進捗を可視化） ---
+    shopping_enabled = (RAKUTEN_APP_ID and RAKUTEN_ACCESS_KEY) or YAHOO_APP_ID
+    with st.status(t(lang, "status_running"), expanded=True) as status:
+        # 1. コーディネート生成（ここが成否の分かれ目）
+        st.write(f"📐 {t(lang, 'spinner_coordinate')}")
         try:
             st.session_state.coord_items = OpenAICoordinateGenerator(OPENAI_KEY).generate(
                 room_prompt, budget, taste, language_name, owned_items
@@ -479,10 +490,9 @@ if st.button(t(lang, "generate_btn"), type="primary", use_container_width=True):
         except Exception as e:
             st.session_state.error = t(lang, "err_coordinate", e=e)
 
-    # --- 2. 商品検索（楽天・Yahoo!を並列） ---
-    shopping_enabled = (RAKUTEN_APP_ID and RAKUTEN_ACCESS_KEY) or YAHOO_APP_ID
-    if st.session_state.coord_items and shopping_enabled:
-        with st.spinner(t(lang, "spinner_shopping")):
+        # 2. 商品検索（楽天・Yahoo!を並列）。失敗は警告のみ（graceful degradation）
+        if st.session_state.coord_items and shopping_enabled:
+            st.write(f"🛍️ {t(lang, 'spinner_shopping')}")
             try:
                 st.session_state.shopping_results = search_all_items(
                     st.session_state.coord_items,
@@ -494,9 +504,9 @@ if st.button(t(lang, "generate_btn"), type="primary", use_container_width=True):
             except Exception as e:
                 st.warning(t(lang, "warn_shopping", e=e))
 
-    # --- 3. 画像生成（現在の部屋写真があれば Img2Img の参照として渡す） ---
-    if st.session_state.coord_items:
-        with st.spinner(t(lang, "spinner_image")):
+        # 3. 画像生成（現在の部屋写真があれば Img2Img の参照として渡す）。失敗は警告のみ
+        if st.session_state.coord_items:
+            st.write(f"🖼️ {t(lang, 'spinner_image')}")
             try:
                 st.session_state.room_image = OpenAIImageGenerator(OPENAI_KEY).generate(
                     st.session_state.coord_items[0]["image_prompt"],
@@ -504,6 +514,12 @@ if st.button(t(lang, "generate_btn"), type="primary", use_container_width=True):
                 )
             except Exception as e:
                 st.warning(t(lang, "warn_image", e=e))
+
+        # 完了状態を更新（コーディネートが生成できていれば complete、できなければ error）
+        if st.session_state.coord_items:
+            status.update(label=t(lang, "status_done"), state="complete", expanded=False)
+        else:
+            status.update(label=t(lang, "status_error"), state="error", expanded=True)
 
 # --- エラー表示 ---
 if st.session_state.error:

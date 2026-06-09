@@ -5,3 +5,5 @@ primaryColor = "#4d7c0f"
 backgroundColor = "#fbfaf7"
 secondaryBackgroundColor = "#f1efe8"
 textColor = "#2b2b28"
+# フォント：日英韓中いずれもOSの標準sans-serifで滑らかに表示（外部フォント不要・軽量）
+font = "sans serif"
