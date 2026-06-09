@@ -46,6 +46,27 @@ def _product_cards(products, lang: str) -> str:
     return f'<div class="p-row">{"".join(cards)}</div>'
 
 
+def _budget_section_html(items, total: int, lang: str) -> str:
+    """予算内訳を、自己完結したCSSバーのHTMLセクションとして返す。"""
+    if not items or total <= 0:
+        return ""
+    rows = []
+    for it in items:
+        pct = round(it["price"] / total * 100)
+        name = html_lib.escape(it["item_name"])
+        rows.append(
+            f'<div class="bd-row">'
+            f'<span class="bd-name">{name}</span>'
+            f'<span class="bd-track"><span class="bd-fill" style="width:{pct}%"></span></span>'
+            f'<span class="bd-val">¥{it["price"]:,}<small>{pct}%</small></span>'
+            f'</div>'
+        )
+    return (
+        f'<section class="card"><h2>📊 {html_lib.escape(t(lang, "budget_breakdown"))}</h2>'
+        f'<div class="bd">{"".join(rows)}</div></section>'
+    )
+
+
 def build_html_report(
     items,
     shopping_results,
@@ -56,6 +77,7 @@ def build_html_report(
     taste: str,
     budget: int,
     generated_at: str,
+    owned_items: str = "",
 ) -> str:
     """生成結果一式を単一HTMLファイル（画像埋め込み）にまとめて返す。"""
     total = sum(it["price"] for it in items)
@@ -75,14 +97,10 @@ def build_html_report(
     meta_rows = "".join(
         f'<div class="meta-row"><span class="k">{html_lib.escape(k)}</span>'
         f'<span class="v">{html_lib.escape(v)}</span></div>'
-        for k, v in (
-            (t(lang, "room_size_label"), room_label),
-            (t(lang, "taste_label"), taste),
-            (t(lang, "budget_metric"), f"¥{budget:,}"),
-            (t(lang, "m_total"), f"¥{total:,}"),
-            (t(lang, "report_generated"), generated_at),
-        )
+        for k, v in _conditions(lang, room_label, taste, budget, total, generated_at, owned_items)
     )
+
+    budget_block = _budget_section_html(items, total, lang)
 
     # --- アイテム一覧 ---
     item_blocks = []
@@ -152,6 +170,13 @@ h2 {{ font-size: 18px; color: #4d7c0f; margin: 0 0 14px; }}
 .p-name {{ display: block; font-size: 11px; line-height: 1.35; height: 30px; overflow: hidden; margin-top: 5px; color: #3a3a36; }}
 .p-price {{ display: block; font-size: 15px; font-weight: 800; margin-top: 5px; }}
 .p-review {{ display: block; font-size: 10px; color: #9a8f7d; margin-top: 2px; }}
+.bd {{ margin-top: 2px; }}
+.bd-row {{ display: flex; align-items: center; gap: 10px; margin: 9px 0; font-size: 13px; }}
+.bd-name {{ width: 34%; color: #4a4a44; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }}
+.bd-track {{ flex: 1; height: 10px; background: #eef0e8; border-radius: 999px; overflow: hidden; }}
+.bd-fill {{ display: block; height: 100%; background: linear-gradient(90deg,#84a98c,#4d7c0f); border-radius: 999px; }}
+.bd-val {{ width: 24%; text-align: right; font-weight: 700; color: #2b2b28; white-space: nowrap; }}
+.bd-val small {{ color: #9a8f7d; font-weight: 600; margin-left: 5px; }}
 footer {{ text-align: center; color: #9a8f7d; font-size: 11px; margin: 26px 0 6px; }}
 </style>
 </head>
@@ -170,21 +195,26 @@ footer {{ text-align: center; color: #9a8f7d; font-size: 11px; margin: 26px 0 6p
       <h2>🛋️ {html_lib.escape(t(lang, "items_header"))}</h2>
       {"".join(item_blocks)}
     </section>
+    {budget_block}
     <footer>AI Interior Coordinator · {html_lib.escape(generated_at)}</footer>
   </div>
 </body>
 </html>"""
 
 
-def _conditions(lang, room_label, taste, budget, total, generated_at):
+def _conditions(lang, room_label, taste, budget, total, generated_at, owned_items=""):
     """各形式で共通して使う「提案条件」の (ラベル, 値) リストを返す。"""
-    return [
+    rows = [
         (t(lang, "room_size_label"), room_label),
         (t(lang, "taste_label"), taste),
         (t(lang, "budget_metric"), f"¥{budget:,}"),
         (t(lang, "m_total"), f"¥{total:,}"),
         (t(lang, "report_generated"), generated_at),
     ]
+    owned = (owned_items or "").strip()
+    if owned:
+        rows.append((t(lang, "owned_label"), owned))
+    return rows
 
 
 # 言語コード → reportlab 同梱のCIDフォント名（追加フォントファイル不要）
@@ -221,6 +251,7 @@ def build_pdf_report(
     taste: str,
     budget: int,
     generated_at: str,
+    owned_items: str = "",
 ) -> bytes:
     """生成結果を、見た目を保ったままのPDFバイト列にして返す。"""
     from reportlab.lib import colors
@@ -283,7 +314,7 @@ def build_pdf_report(
     # --- 提案条件 ---
     story.append(Paragraph(esc(t(lang, "report_conditions")), h2))
     cond_rows = [[Paragraph(esc(k), key), Paragraph(esc(v), val)]
-                 for k, v in _conditions(lang, room_label, taste, budget, total, generated_at)]
+                 for k, v in _conditions(lang, room_label, taste, budget, total, generated_at, owned_items)]
     cond_tbl = Table(cond_rows, colWidths=[doc.width * 0.32, doc.width * 0.68])
     cond_tbl.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
@@ -327,6 +358,28 @@ def build_pdf_report(
                 story.append(Paragraph(link, prod))
         story.append(Spacer(1, 6))
 
+    # --- 予算内訳（横棒グラフ） ---
+    if total > 0:
+        from reportlab.graphics.shapes import Drawing, Rect, String
+
+        story.append(Paragraph(esc(t(lang, "budget_breakdown")), h2))
+        row_h = 18
+        label_w = doc.width * 0.30
+        bar_max = doc.width * 0.46
+        d = Drawing(doc.width, row_h * len(items))
+        for k, it in enumerate(items):
+            y = (len(items) - 1 - k) * row_h + 4
+            frac = it["price"] / total
+            label = it["item_name"]
+            if len(label) > 14:
+                label = label[:13] + "…"
+            d.add(String(0, y, label, fontName=font, fontSize=8, fillColor=dark))
+            d.add(Rect(label_w, y - 1, bar_max, 9, fillColor=line_col, strokeColor=None))
+            d.add(Rect(label_w, y - 1, max(1.0, bar_max * frac), 9, fillColor=green, strokeColor=None))
+            d.add(String(label_w + bar_max + 6, y, f"¥{it['price']:,} ({round(frac * 100)}%)",
+                         fontName=font, fontSize=8, fillColor=dark))
+        story.append(d)
+
     doc.build(story)
     return buf.getvalue()
 
@@ -341,6 +394,7 @@ def build_excel_report(
     taste: str,
     budget: int,
     generated_at: str,
+    owned_items: str = "",
 ) -> bytes:
     """生成結果を、条件・アイテム表・おすすめ商品・完成予想図を含むExcelにして返す。"""
     from openpyxl import Workbook
@@ -370,7 +424,7 @@ def build_excel_report(
 
     # 提案条件
     r = 3
-    for k, v in _conditions(lang, room_label, taste, budget, total, generated_at):
+    for k, v in _conditions(lang, room_label, taste, budget, total, generated_at, owned_items):
         ws.cell(r, 1, k).font = Font(bold=True, color="7A7468")
         ws.cell(r, 2, v)
         r += 1
@@ -378,12 +432,14 @@ def build_excel_report(
 
     # アイテム表
     headers = ["#", t(lang, "chart_item"), t(lang, "chart_price"), t(lang, "reason_label")]
+    item_header_row = r
     for ci, htext in enumerate(headers, 1):
         cell = ws.cell(r, ci, htext)
         cell.font = Font(bold=True, color=GREEN)
         cell.fill = PatternFill("solid", fgColor=HEAD_BG)
         cell.border = border
     r += 1
+    first_item_row = r
     for i, it in enumerate(items, 1):
         ws.cell(r, 1, i).border = border
         ws.cell(r, 2, it["item_name"]).border = border
@@ -394,12 +450,29 @@ def build_excel_report(
         rc.alignment = wrap_top
         rc.border = border
         r += 1
+    last_item_row = r - 1
     # 合計行
     ws.cell(r, 2, t(lang, "m_total")).font = Font(bold=True)
     tc = ws.cell(r, 3, total)
     tc.number_format = "¥#,##0"
     tc.font = Font(bold=True, color=GREEN)
     r += 2
+
+    # 予算内訳チャート（横棒）：価格列を参照したネイティブグラフを表の右に配置
+    if items and total > 0:
+        from openpyxl.chart import BarChart, Reference
+
+        chart = BarChart()
+        chart.type = "bar"
+        chart.title = t(lang, "budget_breakdown")
+        chart.legend = None
+        chart.height = 1.6 * len(items) + 2
+        chart.width = 14
+        data = Reference(ws, min_col=3, min_row=item_header_row, max_row=last_item_row)
+        cats = Reference(ws, min_col=2, min_row=first_item_row, max_row=last_item_row)
+        chart.add_data(data, titles_from_data=True)
+        chart.set_categories(cats)
+        ws.add_chart(chart, f"G{item_header_row}")
 
     # おすすめ商品
     has_products = any(shopping_results.get(it["item_name"]) for it in items)

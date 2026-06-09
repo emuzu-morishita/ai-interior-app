@@ -1,8 +1,8 @@
-streamlit
-openai
-requests
-Pillow
-python-dotenv
-pandas
-reportlab
-openpyxl
+streamlit>=1.45          # st.multiselect(accept_new_options=...) に必須
+openai>=1.40             # Structured Outputs (json_schema) / gpt-image-1 b64
+requests>=2.31
+Pillow>=10.0
+python-dotenv>=1.0
+pandas>=2.0
+reportlab>=4.0           # PDFレポート（予算横棒グラフ含む）
+openpyxl>=3.1            # Excelレポート（ネイティブ棒グラフ含む）
