@@ -58,9 +58,12 @@ def search_rakuten(
 
     results = []
     for item in raw_items[:hits]:
-        # formatVersion=2 では mediumImageUrls はURL文字列のリスト
         images = item.get("mediumImageUrls", [])
-        image_url = images[0].replace("?_ex=128x128", "?_ex=240x240") if images else ""
+        raw_img = images[0] if images else ""
+        # formatVersion=2 は文字列リストだが、旧形式（辞書）が混入した場合も吸収する
+        if isinstance(raw_img, dict):
+            raw_img = raw_img.get("imageUrl", "")
+        image_url = raw_img.replace("?_ex=128x128", "?_ex=240x240") if raw_img else ""
         results.append(ShoppingItem(
             name=item.get("itemName", ""),
             price=int(item.get("itemPrice", 0)),
