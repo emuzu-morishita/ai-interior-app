@@ -13,7 +13,7 @@ https://ai-interior-app-emuzu-trial.streamlit.app/
 - **予算内訳チャート**: 各アイテムの金額をグラフで可視化
 - **完成予想図生成**: 提案内容をもとにAIが部屋全体のレイアウト画像を生成（横長）
 - **ショッピング連携**: 各提案アイテムに対し、楽天市場・Yahoo!ショッピングの類似商品を自動検索・表示
-- **多言語対応**: 日本語 / English / 한국어 / 中文 を切替可能。AIの提案文も選択言語で生成
+- **多言語対応**: 日本語 / English / 한국어 / 中文 / Português (Brasil) を切替可能。AIの提案文も選択言語で生成
 
 ## 技術スタック
 
@@ -23,7 +23,7 @@ https://ai-interior-app-emuzu-trial.streamlit.app/
 | テキスト生成 | OpenAI GPT-4o mini（Structured Outputs） |
 | 画像生成 | OpenAI gpt-image-1（1536×1024 / 横長） |
 | ショッピング検索 | 楽天商品検索API / Yahoo!ショッピングAPI |
-| 多言語 | 日本語・英語・韓国語・中国語（services/i18n.py） |
+| 多言語 | 日本語・英語・韓国語・中国語・ポルトガル語(ブラジル)（services/i18n.py） |
 | デプロイ | Streamlit Cloud |
 
 ## セットアップ（ローカル開発）

@@ -72,14 +72,14 @@ streamlit run app.py
 ### 多言語対応（`services/i18n.py`）
 
 - 全 UI 文言は `TRANSLATIONS[lang][key]` の辞書。`t(lang, key, **kwargs)` でアクセス（`str.format` でプレースホルダ展開、未定義キーは日本語フォールバック）。
-- **UI 文言を追加・変更するときは ja / en / ko / zh の 4 言語すべてにキーを追加すること。** 1 言語でも欠けると、その言語でキー文字列がそのまま表示される。
+- **UI 文言を追加・変更するときは ja / en / ko / zh / pt の 5 言語すべてにキーを追加すること。** 1 言語でも欠けると、その言語でキー文字列がそのまま表示される（キーパリティは `tests/smoke_test.py` が検証する）。
 - `LANGUAGE_NAMES`（AIプロンプト用の英語言語名）、`ROOM_SIZE_PROMPT`（AI用の英語寸法。表示ラベル `ROOM_SIZE_LABELS` とは別物）、`TASTE_OPTIONS`/`TASTE_DEFAULT` も言語別に定義。
 
 ### レポート出力（`services/report.py`）
 
 - `build_html_report` / `build_pdf_report` / `build_excel_report` の 3 ビルダー。**いずれも同じ引数シグネチャ**（`items, shopping_results, room_image, *, lang, room_label, taste, budget, generated_at, owned_items=""`）。`app.py` の `builders` dict で形式を切り替える。
 - 提案条件の (ラベル, 値) は `_conditions()` で共通化。
-- HTML は画像を base64 data URI で埋め込み外部依存ゼロ。PDF は reportlab + **言語別 CID フォント**（`_PDF_CID_FONTS`、ja/ko/zh のみ。追加フォントファイル不要、失敗時 Helvetica）。
+- HTML は画像を base64 data URI で埋め込み外部依存ゼロ。PDF は reportlab + **言語別 CID フォント**（`_PDF_CID_FONTS`、ja/ko/zh のみ。追加フォントファイル不要、失敗時 Helvetica）。en/pt などラテン文字言語は Helvetica（cp1252 でアクセント文字も表示可）で出力される。
 
 ## 既知の注意点
 

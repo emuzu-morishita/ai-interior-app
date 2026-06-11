@@ -1,4 +1,4 @@
-# 多言語対応（日本語 / English / 한국어 / 中文）
+# 多言語対応（日本語 / English / 한국어 / 中文 / Português (Brasil)）
 
 # 言語コード → 表示名（セレクタ用）
 LANGUAGES = {
@@ -6,6 +6,7 @@ LANGUAGES = {
     "en": "English",
     "ko": "한국어",
     "zh": "中文",
+    "pt": "Português (Brasil)",
 }
 
 # 言語コード → AIプロンプトで使う言語名（英語表記）
@@ -14,6 +15,7 @@ LANGUAGE_NAMES = {
     "en": "English",
     "ko": "Korean",
     "zh": "Chinese (Simplified)",
+    "pt": "Brazilian Portuguese",
 }
 
 # 間取りの選択肢ラベル（表示用・言語別）
@@ -22,6 +24,7 @@ ROOM_SIZE_LABELS = {
     "en": ["6 tatami (~10㎡)", "8 tatami (~13㎡)", "10 tatami (~16㎡)", "12+ tatami (~20㎡+)"],
     "ko": ["6조 (~10㎡)", "8조 (~13㎡)", "10조 (~16㎡)", "12조 이상 (~20㎡+)"],
     "zh": ["6叠 (~10㎡)", "8叠 (~13㎡)", "10叠 (~16㎡)", "12叠以上 (~20㎡+)"],
+    "pt": ["6 tatames (~10㎡)", "8 tatames (~13㎡)", "10 tatames (~16㎡)", "12+ tatames (~20㎡+)"],
 }
 
 # 間取りのAIプロンプト用説明（言語非依存・英語で寸法を明示）
@@ -38,6 +41,7 @@ TASTE_DEFAULT = {
     "en": "Scandinavian modern",
     "ko": "북유럽 모던",
     "zh": "北欧现代",
+    "pt": "Escandinavo moderno",
 }
 
 # テイストのプリセット選択肢（言語別。先頭は TASTE_DEFAULT と対応）
@@ -46,6 +50,7 @@ TASTE_OPTIONS = {
     "en": ["Scandinavian modern", "Natural", "Modern / Minimalist", "Industrial", "Japanese modern", "Vintage / Retro"],
     "ko": ["북유럽 모던", "내추럴", "모던·미니멀", "인더스트리얼", "재패니즈 모던", "빈티지·레트로"],
     "zh": ["北欧现代", "自然风", "现代·简约", "工业风", "和风现代", "复古风"],
+    "pt": ["Escandinavo moderno", "Natural", "Moderno / Minimalista", "Industrial", "Japonês moderno", "Vintage / Retrô"],
 }
 
 # 手持ち家具マルチセレクトのプリセット候補（言語別。自由入力での追加も可）
@@ -54,6 +59,7 @@ OWNED_PRESETS = {
     "en": ["Sofa", "Bed", "Dining table", "TV / TV stand", "Desk", "Bookshelf", "Curtains", "Lighting", "Rug", "Storage shelf"],
     "ko": ["소파", "침대", "식탁", "TV·TV 거치대", "책상", "책장", "커튼", "조명", "러그", "수납장"],
     "zh": ["沙发", "床", "餐桌", "电视·电视柜", "书桌", "书架", "窗帘", "照明", "地毯", "收纳柜"],
+    "pt": ["Sofá", "Cama", "Mesa de jantar", "TV / Rack de TV", "Escrivaninha", "Estante de livros", "Cortinas", "Iluminação", "Tapete", "Armário"],
 }
 
 # UI文言
@@ -361,6 +367,82 @@ TRANSLATIONS = {
         "sample_living": "北欧现代 × 客厅",
         "sample_bedroom": "自然风 × 卧室",
         "sample_note": "输入条件并点击「生成搭配方案」，即可为您的房间生成这样的方案和效果预览图。",
+    },
+    "pt": {
+        "caption": "Basta informar o tamanho do cômodo, o orçamento e o estilo — a IA sugere uma decoração completa e uma imagem de prévia do ambiente.",
+        "about_header": "Sobre este app",
+        "about_body": "O OpenAI GPT-4o mini sugere móveis e itens de decoração, e o gpt-image-1 gera uma prévia do ambiente. Também recomenda produtos compatíveis do Rakuten e do Yahoo! Shopping.",
+        "presentation_link": "Ver apresentação",
+        "how_header": "Como usar",
+        "step1": "Informe o tamanho, o orçamento e o estilo",
+        "step2": "A IA gera os itens e a prévia do ambiente",
+        "step3": "Confira os produtos recomendados e compre",
+        "language_label": "Idioma",
+        "room_size_label": "Tamanho do cômodo",
+        "taste_label": "Estilo preferido",
+        "taste_other": "Outro (texto livre)",
+        "taste_other_label": "Digite seu próprio estilo",
+        "budget_label": "Orçamento (JPY)",
+        "budget_metric": "Orçamento definido",
+        "generate_btn": "Gerar decoração",
+        "spinner_coordinate": "A IA está pensando na sua decoração...",
+        "spinner_shopping": "A IA está buscando produtos recomendados...",
+        "spinner_image": "Gerando a imagem de prévia... (cerca de 10–20 s)",
+        "status_running": "A IA está projetando o seu ambiente ideal…",
+        "status_done": "Sua proposta está pronta!",
+        "status_error": "Falha na geração",
+        "err_no_openai": "OPENAI_API_KEY não está configurada. Verifique o Streamlit Secrets ou o arquivo .env.",
+        "err_coordinate": "Falha ao gerar a decoração: {e}",
+        "warn_shopping": "Falha ao buscar produtos recomendados (a proposta de decoração ainda é exibida): {e}",
+        "warn_image": "Falha na geração da imagem: {e}",
+        "m_count": "Itens sugeridos",
+        "count_unit": "{n} itens",
+        "m_total": "Total (estimativa)",
+        "m_diff": "Diferença do orçamento",
+        "diff_over": "acima",
+        "diff_under": "restante",
+        "warn_over": "O total ultrapassa o orçamento em ¥{amount:,}.",
+        "budget_breakdown": "Detalhamento do orçamento",
+        "chart_item": "Item",
+        "chart_price": "Preço",
+        "items_header": "Itens sugeridos",
+        "recommend_header": "Produtos recomendados pela IA (Rakuten / Yahoo!)",
+        "product_button": "Ver produto →",
+        "no_products": "Nenhum produto pôde ser recomendado.",
+        "review_fmt": "★ {avg:.1f} ({count:,} avaliações)",
+        "preview_header": "Prévia do ambiente (gerada por IA)",
+        "preview_caption": "O layout ideal sugerido pela IA",
+        "download_btn": "📥 Salvar esta proposta",
+        "download_caption": "Recarregar o navegador apaga os resultados. Salve para consultar depois.",
+        "report_conditions": "Condições",
+        "report_generated": "Gerado em",
+        "save_format_label": "Escolha um formato",
+        "reason_label": "Motivo",
+        "placement_label": "Dica de posicionamento",
+        "col_product": "Produto",
+        "col_mall": "Loja",
+        "warn_save": "Falha ao criar o arquivo: {e}",
+        "advanced_options": "Opções avançadas (opcional)",
+        "upload_photo_label": "Foto do seu cômodo atual (opcional)",
+        "upload_photo_help": "Envie uma foto do seu cômodo atual para gerar uma prévia que preserva a estrutura dele (Img2Img).",
+        "photo_uploaded_caption": "Esta foto será usada como referência para a prévia.",
+        "owned_items_label": "Móveis que você já tem (não vai comprar)",
+        "owned_items_help": "Escolha das opções ou digite e pressione Enter para adicionar. Serão excluídos das sugestões da IA e do orçamento.",
+        "owned_items_placeholder": "Selecione ou digite para adicionar",
+        "owned_label": "Já possui (excluído)",
+        "regen_item_btn": "🔄 Gerar outro",
+        "spinner_regen": "Gerando um item alternativo...",
+        "warn_regen": "Falha ao regenerar o item: {e}",
+        "regen_with_image_label": "Atualizar também a prévia ao regenerar",
+        "regen_with_image_help": "Quando ativado, a imagem de prévia é recriada a cada regeneração de item (custo extra de geração).",
+        "update_preview_btn": "🖼️ Atualizar prévia",
+        "preview_none": "Ainda não há prévia. Use o botão abaixo para gerar uma.",
+        "regen_done": "Substituído por “{name}”.",
+        "preview_updated": "Prévia atualizada.",
+        "sample_header": "Exemplos de prévia",
+        "sample_living": "Escandinavo moderno × Sala de estar",
+        "sample_bedroom": "Natural × Quarto",
+        "sample_note": "Informe as condições e pressione \"Gerar decoração\" — uma proposta e uma prévia como estas serão geradas para o seu ambiente.",
     },
 }
 
