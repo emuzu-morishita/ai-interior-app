@@ -107,6 +107,12 @@ def build_html_report(
     for i, it in enumerate(items, 1):
         name = html_lib.escape(it["item_name"])
         reason = html_lib.escape(it["reason"])
+        place_block = ""
+        if it.get("placement"):
+            place_block = (
+                f'<p class="item-place">📐 <b>{html_lib.escape(t(lang, "placement_label"))}</b> '
+                f'{html_lib.escape(it["placement"])}</p>'
+            )
         products = shopping_results.get(it["item_name"], [])
         rec_block = ""
         if products:
@@ -122,6 +128,7 @@ def build_html_report(
             f'<span class="item-price">¥{it["price"]:,}</span>'
             f'</div>'
             f'<p class="item-reason">{reason}</p>'
+            f'{place_block}'
             f'{rec_block}'
             f'</div>'
         )
@@ -159,6 +166,8 @@ h2 {{ font-size: 18px; color: #4d7c0f; margin: 0 0 14px; }}
 .item-name {{ font-weight: 700; font-size: 16px; flex: 1; }}
 .item-price {{ font-weight: 800; color: #4d7c0f; white-space: nowrap; }}
 .item-reason {{ margin: 10px 0 0; font-size: 14px; line-height: 1.7; color: #4a4a44; }}
+.item-place {{ margin: 8px 0 0; font-size: 13px; line-height: 1.6; color: #4a4a44;
+  background: #f7f5ed; border-left: 3px solid #4d7c0f; border-radius: 0 8px 8px 0; padding: 8px 12px; }}
 .rec-h {{ font-size: 12px; font-weight: 700; color: #4d7c0f; margin: 14px 0 9px; }}
 .p-row {{ display: flex; flex-wrap: wrap; gap: 12px; }}
 .p-card {{ width: 150px; border: 1px solid #e7e3d8; border-radius: 12px; padding: 9px;
@@ -285,6 +294,7 @@ def build_pdf_report(
     val = ParagraphStyle("val", fontName=font, fontSize=10, textColor=dark, leading=15)
     ih = ParagraphStyle("ih", fontName=font, fontSize=12, textColor=dark, leading=16, spaceBefore=10)
     body = ParagraphStyle("body", fontName=font, fontSize=10, textColor=body_col, leading=15, spaceBefore=3)
+    place = ParagraphStyle("place", fontName=font, fontSize=9, textColor=green, leading=14, spaceBefore=3)
     rec = ParagraphStyle("rec", fontName=font, fontSize=9, textColor=green, leading=13, spaceBefore=6)
     prod = ParagraphStyle("prod", fontName=font, fontSize=9, textColor=dark, leading=14, leftIndent=10)
     cap = ParagraphStyle("cap", fontName=font, fontSize=8, textColor=grey, leading=11, alignment=1)
@@ -345,6 +355,8 @@ def build_pdf_report(
     for i, it in enumerate(items, 1):
         story.append(Paragraph(f"{i}. {esc(it['item_name'])} — ¥{it['price']:,}", ih))
         story.append(Paragraph(esc(it["reason"]), body))
+        if it.get("placement"):
+            story.append(Paragraph(f"{esc(t(lang, 'placement_label'))} {esc(it['placement'])}", place))
         products = shopping_results.get(it["item_name"], [])
         if products:
             story.append(Paragraph(esc(t(lang, "recommend_header")), rec))
@@ -431,7 +443,8 @@ def build_excel_report(
     r += 1
 
     # アイテム表
-    headers = ["#", t(lang, "chart_item"), t(lang, "chart_price"), t(lang, "reason_label")]
+    headers = ["#", t(lang, "chart_item"), t(lang, "chart_price"),
+               t(lang, "reason_label"), t(lang, "placement_label")]
     item_header_row = r
     for ci, htext in enumerate(headers, 1):
         cell = ws.cell(r, ci, htext)
@@ -449,6 +462,9 @@ def build_excel_report(
         rc = ws.cell(r, 4, it["reason"])
         rc.alignment = wrap_top
         rc.border = border
+        plc = ws.cell(r, 5, it.get("placement", ""))
+        plc.alignment = wrap_top
+        plc.border = border
         r += 1
     last_item_row = r - 1
     # 合計行
@@ -502,8 +518,8 @@ def build_excel_report(
                 link.border = border
                 r += 1
 
-    # 列幅
-    for col, width in {"A": 16, "B": 34, "C": 14, "D": 40, "E": 16}.items():
+    # 列幅（E はアイテム表の配置アドバイスと商品表のリンク列を兼ねる）
+    for col, width in {"A": 16, "B": 34, "C": 14, "D": 40, "E": 34}.items():
         ws.column_dimensions[col].width = width
 
     # 完成予想図（別シートに画像を埋め込み）

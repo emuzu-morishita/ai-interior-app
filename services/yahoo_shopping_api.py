@@ -10,10 +10,10 @@ def search_yahoo(app_id: str, keyword: str, suggested_price: int, hits: int = 3)
     params = {
         "appid": app_id,
         "query": keyword,
-        "results": 10,  # 多めに取得して価格でソート後に絞る
+        "results": 10,  # 多めに取得して呼び出し側で価格ソート後に絞る
         "price_from": max(100, int(suggested_price * 0.3)),
         "price_to": int(suggested_price * 2.5),
-        "sort": "+price",
+        "sort": "-score",  # 関連度順。安い順だと部品・カバー等のノイズが先頭に来やすい
         "in_stock": "true",
     }
 

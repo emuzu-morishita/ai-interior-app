@@ -1,8 +1,11 @@
 import streamlit as st
 import pandas as pd
+import base64
 import os
 import html as html_lib
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+from pathlib import Path
 from dotenv import load_dotenv
 from PIL import Image
 
@@ -176,7 +179,9 @@ footer                         { visibility: hidden; }
 .budget-bar-fill { height: 100%; border-radius: 999px; transition: width 0.5s cubic-bezier(0.4,0,0.2,1); }
 
 /* ── メトリクスカード ─────────────────────── */
-[data-testid="metric-container"] {
+/* testid は Streamlit のバージョンで変わるため新旧両方を指定 */
+[data-testid="metric-container"],
+[data-testid="stMetric"] {
   background: var(--card); border: 1px solid var(--border);
   border-radius: var(--r-sm); padding: 16px 18px; box-shadow: var(--sh-sm);
 }
@@ -192,14 +197,46 @@ footer                         { visibility: hidden; }
 [data-testid="stExpander"]:hover { box-shadow: var(--sh-md) !important; border-color: #c5d9a8 !important; }
 
 /* ── 生成ボタン ─────────────────────────── */
-[data-testid="baseButton-primary"] {
+/* testid は Streamlit のバージョンで変わるため新旧両方を指定 */
+[data-testid="baseButton-primary"],
+[data-testid="stBaseButton-primary"],
+button[kind="primary"] {
   background: linear-gradient(135deg, var(--brand-dk) 0%, var(--brand) 60%, #6aa32a 100%) !important;
   border: none !important; border-radius: var(--r-sm) !important; font-weight: 800 !important;
   box-shadow: 0 4px 18px rgba(77,124,15,.30) !important;
   transition: transform var(--ease), box-shadow var(--ease) !important;
 }
-[data-testid="baseButton-primary"]:hover {
+[data-testid="baseButton-primary"]:hover,
+[data-testid="stBaseButton-primary"]:hover,
+button[kind="primary"]:hover {
   transform: translateY(-2px) !important; box-shadow: 0 8px 28px rgba(77,124,15,.38) !important;
+}
+
+/* ── 空状態サンプルギャラリー ───────────────── */
+.sample-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px; margin-top: 8px;
+}
+.sample-card {
+  margin: 0; background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 10px; box-shadow: var(--sh-sm);
+}
+.sample-img {
+  aspect-ratio: 16 / 10; border-radius: var(--r-sm);
+  background-size: cover; background-position: center; background-color: #f1efe8;
+}
+.sample-card figcaption {
+  font-size: 13px; font-weight: 700; color: var(--text-md);
+  text-align: center; padding: 10px 0 4px;
+}
+
+/* ── モバイル対応 ─────────────────────────── */
+@media (max-width: 640px) {
+  .block-container { padding-top: 1.4rem; }
+  .hero { padding: 22px 20px; }
+  .hero h1 { font-size: 24px; }
+  .hero p  { font-size: 14px; }
+  .sim-card { width: calc(50% - 7px); }
 }
 </style>
 """,
@@ -242,9 +279,36 @@ def _render_products(products, lang: str) -> str:
     return f'<div class="sim-row">{"".join(cards)}</div>'
 
 
+_ASSET_DIR = Path(__file__).parent / "assets"
+
+
+@st.cache_data
+def _sample_cards() -> list[tuple[str, str]]:
+    """空状態ギャラリー用の (画像data URI, i18nキー) を返す。画像が無い環境では空リスト。"""
+    cards = []
+    for fname, key in (("preview_living.jpg", "sample_living"), ("preview_bedroom.jpg", "sample_bedroom")):
+        path = _ASSET_DIR / fname
+        if path.exists():
+            b64 = base64.b64encode(path.read_bytes()).decode("ascii")
+            cards.append((f"data:image/jpeg;base64,{b64}", key))
+    return cards
+
+
 def _set_flash(level: str, message: str) -> None:
     """rerun をまたいで一度だけ表示するメッセージ（"success"/"warning"等）を記録する。"""
     st.session_state.flash = (level, message)
+
+
+def _room_image_prompt() -> str:
+    """完成予想図用の英語プロンプトを返す。
+
+    生成時に保存した「全アイテムを配置した部屋全体」の room_image_prompt を優先し、
+    無い場合（旧形式のセッション）は先頭アイテムの image_prompt にフォールバックする。
+    """
+    ctx = st.session_state.gen_ctx or {}
+    items = st.session_state.coord_items or []
+    fallback = items[0].get("image_prompt", "") if items else ""
+    return ctx.get("room_image_prompt") or fallback
 
 
 def _regenerate_item(idx: int, lang: str, regen_image: bool = False) -> None:
@@ -252,7 +316,7 @@ def _regenerate_item(idx: int, lang: str, regen_image: bool = False) -> None:
 
     生成時に保存した gen_ctx（同じ間取り・予算・テイスト・手持ち家具）だけを使い、
     既存アイテムと重複しない代替を1件だけ生成して該当インデックスを書き換える。
-    regen_image=True のときは「差し替えたアイテム」の image_prompt で完成予想図も
+    regen_image=True のときは「差し替え後の部屋全体」の room_image_prompt で完成予想図も
     作り直す（gpt-image-1 の追加課金）。結果はフラッシュメッセージで通知する。
     """
     items_now = st.session_state.coord_items or []
@@ -265,7 +329,7 @@ def _regenerate_item(idx: int, lang: str, regen_image: bool = False) -> None:
 
     with st.spinner(t(lang, "spinner_regen")):
         try:
-            new_item = OpenAICoordinateGenerator(OPENAI_KEY).regenerate_item(
+            new_item, new_room_prompt = OpenAICoordinateGenerator(OPENAI_KEY).regenerate_item(
                 ctx["room_prompt"],
                 ctx["budget"],
                 ctx["taste"],
@@ -282,6 +346,9 @@ def _regenerate_item(idx: int, lang: str, regen_image: bool = False) -> None:
         # 古いアイテムのおすすめ商品を破棄し、該当枠だけ差し替える
         st.session_state.shopping_results.pop(target["item_name"], None)
         st.session_state.coord_items[idx] = new_item
+        if new_room_prompt:
+            # 以後のプレビュー更新が「差し替え後の部屋」で行われるよう上書きする
+            ctx["room_image_prompt"] = new_room_prompt
 
         # 差し替えた新アイテムのおすすめ商品だけ再検索（失敗しても無視）
         if (RAKUTEN_APP_ID and RAKUTEN_ACCESS_KEY) or YAHOO_APP_ID:
@@ -298,12 +365,12 @@ def _regenerate_item(idx: int, lang: str, regen_image: bool = False) -> None:
             except Exception:
                 pass
 
-    # オプション：差し替えたアイテムの image_prompt で完成予想図も作り直す
+    # オプション：差し替え後の部屋全体の room_image_prompt で完成予想図も作り直す
     if regen_image:
         with st.spinner(t(lang, "spinner_image")):
             try:
                 st.session_state.room_image = OpenAIImageGenerator(OPENAI_KEY).generate(
-                    st.session_state.coord_items[idx]["image_prompt"],
+                    _room_image_prompt(),
                     reference_image=st.session_state.room_photo,
                 )
             except Exception as e:
@@ -316,14 +383,14 @@ def _regenerate_item(idx: int, lang: str, regen_image: bool = False) -> None:
 
 
 def _update_preview(lang: str) -> None:
-    """先頭アイテムの image_prompt で完成予想図だけを単発で作り直す（追加課金）。"""
-    items_now = st.session_state.coord_items or []
-    if not items_now:
+    """部屋全体の room_image_prompt で完成予想図だけを単発で作り直す（追加課金）。"""
+    prompt = _room_image_prompt()
+    if not prompt:
         return
     with st.spinner(t(lang, "spinner_image")):
         try:
             st.session_state.room_image = OpenAIImageGenerator(OPENAI_KEY).generate(
-                items_now[0]["image_prompt"],
+                prompt,
                 reference_image=st.session_state.room_photo,
             )
             _set_flash("success", t(lang, "preview_updated"))
@@ -434,7 +501,7 @@ with st.expander(f"🛠️ {t(lang, 'advanced_options')}", expanded=False):
             help=t(lang, "upload_photo_help"),
         )
         if photo_file is not None:
-            st.image(photo_file, use_container_width=True)
+            st.image(photo_file, width="stretch")
             st.caption(t(lang, "photo_uploaded_caption"))
     with adv_r:
         owned_input = st.multiselect(
@@ -450,7 +517,7 @@ with st.expander(f"🛠️ {t(lang, 'advanced_options')}", expanded=False):
 room_prompt = i18n.ROOM_SIZE_PROMPT[room_idx]
 language_name = i18n.LANGUAGE_NAMES[lang]
 
-if st.button(t(lang, "generate_btn"), type="primary", use_container_width=True):
+if st.button(t(lang, "generate_btn"), type="primary", width="stretch"):
     # ボタンを押した瞬間に前回の結果・エラーをクリア
     st.session_state.coord_items = None
     st.session_state.shopping_results = {}
@@ -469,9 +536,10 @@ if st.button(t(lang, "generate_btn"), type="primary", use_container_width=True):
             room_photo = None
     st.session_state.room_photo = room_photo
 
-    # 個別再生成で同じ条件を使い回せるよう、生成時のコンテキストを保存
+    # 個別再生成・結果表示・レポートで同じ条件を使い回せるよう、生成時のコンテキストを保存
     st.session_state.gen_ctx = {
         "room_prompt": room_prompt,
+        "room_idx": room_idx,
         "budget": budget,
         "taste": taste,
         "language_name": language_name,
@@ -484,36 +552,45 @@ if st.button(t(lang, "generate_btn"), type="primary", use_container_width=True):
         # 1. コーディネート生成（ここが成否の分かれ目）
         st.write(f"📐 {t(lang, 'spinner_coordinate')}")
         try:
-            st.session_state.coord_items = OpenAICoordinateGenerator(OPENAI_KEY).generate(
+            result = OpenAICoordinateGenerator(OPENAI_KEY).generate(
                 room_prompt, budget, taste, language_name, owned_items
             )
+            st.session_state.coord_items = result["items"]
+            # 全アイテムを配置した部屋全体の画像プロンプト（プレビュー更新でも使う）
+            st.session_state.gen_ctx["room_image_prompt"] = result.get("room_image_prompt", "")
         except Exception as e:
             st.session_state.error = t(lang, "err_coordinate", e=e)
 
-        # 2. 商品検索（楽天・Yahoo!を並列）。失敗は警告のみ（graceful degradation）
-        if st.session_state.coord_items and shopping_enabled:
-            st.write(f"🛍️ {t(lang, 'spinner_shopping')}")
-            try:
-                st.session_state.shopping_results = search_all_items(
-                    st.session_state.coord_items,
-                    rakuten_id=RAKUTEN_APP_ID,
-                    rakuten_access_key=RAKUTEN_ACCESS_KEY,
-                    rakuten_origin=RAKUTEN_ORIGIN,
-                    yahoo_id=YAHOO_APP_ID,
-                )
-            except Exception as e:
-                st.warning(t(lang, "warn_shopping", e=e))
-
-        # 3. 画像生成（現在の部屋写真があれば Img2Img の参照として渡す）。失敗は警告のみ
+        # 2+3. 商品検索と画像生成は互いに独立なので並列実行し、待ち時間を短縮する。
+        #      いずれも失敗は警告のみ（graceful degradation）でコーディネート提案は表示する。
         if st.session_state.coord_items:
-            st.write(f"🖼️ {t(lang, 'spinner_image')}")
-            try:
-                st.session_state.room_image = OpenAIImageGenerator(OPENAI_KEY).generate(
-                    st.session_state.coord_items[0]["image_prompt"],
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                shop_future = None
+                if shopping_enabled:
+                    st.write(f"🛍️ {t(lang, 'spinner_shopping')}")
+                    shop_future = pool.submit(
+                        search_all_items,
+                        st.session_state.coord_items,
+                        rakuten_id=RAKUTEN_APP_ID,
+                        rakuten_access_key=RAKUTEN_ACCESS_KEY,
+                        rakuten_origin=RAKUTEN_ORIGIN,
+                        yahoo_id=YAHOO_APP_ID,
+                    )
+                st.write(f"🖼️ {t(lang, 'spinner_image')}")
+                image_future = pool.submit(
+                    OpenAIImageGenerator(OPENAI_KEY).generate,
+                    _room_image_prompt(),
                     reference_image=st.session_state.room_photo,
                 )
-            except Exception as e:
-                st.warning(t(lang, "warn_image", e=e))
+                if shop_future is not None:
+                    try:
+                        st.session_state.shopping_results = shop_future.result()
+                    except Exception as e:
+                        st.warning(t(lang, "warn_shopping", e=e))
+                try:
+                    st.session_state.room_image = image_future.result()
+                except Exception as e:
+                    st.warning(t(lang, "warn_image", e=e))
 
         # 完了状態を更新（コーディネートが生成できていれば complete、できなければ error）
         if st.session_state.coord_items:
@@ -528,7 +605,10 @@ if st.session_state.error:
 # --- フラッシュメッセージ（再生成などの結果。rerunをまたいで一度だけ表示） ---
 if st.session_state.flash:
     _flash_level, _flash_msg = st.session_state.flash
-    getattr(st, _flash_level)(_flash_msg)
+    if _flash_level == "success":
+        st.toast(_flash_msg, icon="✅")  # 成功通知はレイアウトを押し下げないトーストで
+    else:
+        getattr(st, _flash_level)(_flash_msg)
     st.session_state.flash = None
 
 # --- 結果表示 ---
@@ -536,8 +616,15 @@ if st.session_state.coord_items:
     items = st.session_state.coord_items
     shopping_results = st.session_state.shopping_results
 
+    # 生成後に入力ウィジェットを動かしても表示・レポートが狂わないよう、
+    # 金額計算と提案条件は「生成時の条件（gen_ctx）」を基準にする
+    ctx = st.session_state.gen_ctx or {}
+    gen_budget = ctx.get("budget", budget)
+    gen_taste = ctx.get("taste", taste)
+    gen_room_idx = ctx.get("room_idx", room_idx)
+
     total_price = sum(item["price"] for item in items)
-    remaining = budget - total_price
+    remaining = gen_budget - total_price
     over_budget = remaining < 0
 
     st.markdown("---")
@@ -549,7 +636,7 @@ if st.session_state.coord_items:
         unsafe_allow_html=True,
     )
     if st.session_state.room_image:
-        st.image(st.session_state.room_image, use_container_width=True)
+        st.image(st.session_state.room_image, width="stretch")
         st.markdown(
             f'<div class="preview-desc"><span aria-hidden="true">💡 </span>{html_lib.escape(t(lang, "preview_caption"))}</div>',
             unsafe_allow_html=True,
@@ -558,7 +645,7 @@ if st.session_state.coord_items:
         st.caption(t(lang, "preview_none"))
     _, pv_r = st.columns([3, 1])
     with pv_r:
-        if st.button(t(lang, "update_preview_btn"), key="update_preview", use_container_width=True):
+        if st.button(t(lang, "update_preview_btn"), key="update_preview", width="stretch"):
             _update_preview(lang)
 
     # 2. 提案アイテム一覧
@@ -581,7 +668,7 @@ if st.session_state.coord_items:
                 regen_clicked = st.button(
                     t(lang, "regen_item_btn"),
                     key=f"regen_{idx}",
-                    use_container_width=True,
+                    width="stretch",
                 )
             with head_l:
                 st.write(item["reason"])
@@ -609,7 +696,7 @@ if st.session_state.coord_items:
         delta=remaining,
         delta_color="inverse",
     )
-    pct = min(100, int(total_price / budget * 100))
+    pct = min(100, int(total_price / gen_budget * 100))
     bar_color = "#e74c3c" if over_budget else "var(--brand)"
     st.markdown(
         f'<div class="budget-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{pct}">'
@@ -629,7 +716,7 @@ if st.session_state.coord_items:
         t(lang, "chart_item"): [item["item_name"] for item in items],
         t(lang, "chart_price"): [item["price"] for item in items],
     })
-    st.bar_chart(chart_data.set_index(t(lang, "chart_item")))
+    st.bar_chart(chart_data.set_index(t(lang, "chart_item")), color="#4d7c0f")
 
     # 4. 保存ボタン（最後）：リロードで消える前に好きな形式で手元に残す
     st.markdown("---")
@@ -637,11 +724,11 @@ if st.session_state.coord_items:
     report_args = (items, shopping_results, st.session_state.room_image)
     report_kwargs = dict(
         lang=lang,
-        room_label=i18n.ROOM_SIZE_LABELS[lang][room_idx],
-        taste=taste,
-        budget=budget,
+        room_label=i18n.ROOM_SIZE_LABELS[lang][gen_room_idx],
+        taste=gen_taste,
+        budget=gen_budget,
         generated_at=datetime.now().strftime("%Y-%m-%d %H:%M"),
-        owned_items=(st.session_state.gen_ctx or {}).get("owned_items", ""),
+        owned_items=ctx.get("owned_items", ""),
     )
     stamp = datetime.now().strftime("%Y%m%d_%H%M")
     _XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -658,8 +745,27 @@ if st.session_state.coord_items:
             data=data,
             file_name=f"ai-interior-proposal_{stamp}.{ext}",
             mime=mime,
-            use_container_width=True,
+            width="stretch",
         )
     except Exception as e:
         st.warning(t(lang, "warn_save", e=e))
     st.caption(t(lang, "download_caption"))
+
+# --- 空状態（初回表示）：何が生成されるかが一目で分かるサンプルギャラリー ---
+elif not st.session_state.error:
+    _samples = _sample_cards()
+    if _samples:
+        st.markdown(
+            f'<div class="sec-hd"><span class="ic" aria-hidden="true">✨</span>'
+            f'<span class="tx">{html_lib.escape(t(lang, "sample_header"))}</span></div>',
+            unsafe_allow_html=True,
+        )
+        _cards_html = "".join(
+            f'<figure class="sample-card">'
+            f'<div class="sample-img" role="img" aria-label="{html_lib.escape(t(lang, key))}"'
+            f' style="background-image:url(\'{uri}\')"></div>'
+            f'<figcaption>{html_lib.escape(t(lang, key))}</figcaption></figure>'
+            for uri, key in _samples
+        )
+        st.markdown(f'<div class="sample-grid">{_cards_html}</div>', unsafe_allow_html=True)
+        st.caption(t(lang, "sample_note"))

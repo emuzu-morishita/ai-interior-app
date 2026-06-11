@@ -38,7 +38,7 @@ def search_rakuten(
         "hits": hits,
         "minPrice": max(100, int(suggested_price * 0.3)),
         "maxPrice": int(suggested_price * 2.5),
-        "sort": "+itemPrice",
+        # sort は指定しない＝標準（関連度）順。安い順だと部品・カバー等のノイズが先頭に来やすい
         "imageFlag": 1,
         "format": "json",
         "formatVersion": 2,
@@ -89,6 +89,8 @@ def search_all_items(
 ) -> dict[str, list[ShoppingItem]]:
     """全アイテムを楽天・Yahoo!で並列検索し、{item_name: [ShoppingItem]} を返す。
 
+    検索キーワードは search_keyword（AIが常に日本語で生成。楽天・Yahoo!は日本のモールのため、
+    UI言語が英/韓/中でもヒットさせる）を優先し、無ければ item_name にフォールバックする。
     各アイテムごとに両プロバイダーの結果を結合し、価格の安い順に max_per_item 件まで絞る。
     楽天は applicationId と accessKey の両方が揃っている場合のみ実行する。
     """
@@ -99,18 +101,19 @@ def search_all_items(
 
     def _fetch(item: dict) -> tuple[str, list[ShoppingItem]]:
         name = item["item_name"]
+        keyword = item.get("search_keyword") or name
         price = item["price"]
         products: list[ShoppingItem] = []
         if rakuten_enabled:
             try:
                 products += search_rakuten(
-                    rakuten_id, rakuten_access_key, rakuten_origin, name, price, hits=hits_per_provider
+                    rakuten_id, rakuten_access_key, rakuten_origin, keyword, price, hits=hits_per_provider
                 )
             except RuntimeError:
                 pass
         if yahoo_id:
             try:
-                products += search_yahoo(yahoo_id, name, price, hits=hits_per_provider)
+                products += search_yahoo(yahoo_id, keyword, price, hits=hits_per_provider)
             except RuntimeError:
                 pass
         products.sort(key=lambda p: p.price)

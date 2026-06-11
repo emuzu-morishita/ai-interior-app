@@ -129,6 +129,10 @@ TRANSLATIONS = {
         "preview_none": "完成予想図はまだありません。下のボタンで生成できます。",
         "regen_done": "「{name}」に差し替えました。",
         "preview_updated": "完成予想図を更新しました。",
+        "sample_header": "完成予想図のサンプル",
+        "sample_living": "北欧モダン × リビング",
+        "sample_bedroom": "ナチュラル × ベッドルーム",
+        "sample_note": "条件を入力して「コーディネートを生成する」を押すと、このような提案と完成予想図があなたの部屋向けに生成されます。",
     },
     "en": {
         "caption": "Just enter your room size, budget, and taste — the AI suggests an interior coordination and a preview image.",
@@ -201,6 +205,10 @@ TRANSLATIONS = {
         "preview_none": "No preview image yet. Use the button below to generate one.",
         "regen_done": "Swapped in “{name}”.",
         "preview_updated": "Preview image updated.",
+        "sample_header": "Sample previews",
+        "sample_living": "Scandinavian modern × Living room",
+        "sample_bedroom": "Natural × Bedroom",
+        "sample_note": "Enter your conditions and press \"Generate coordination\" — a proposal and preview like these will be generated for your own room.",
     },
     "ko": {
         "caption": "평면도·예산·취향을 입력하면 AI가 인테리어 코디네이트와 완성 예상도를 제안합니다.",
@@ -273,6 +281,10 @@ TRANSLATIONS = {
         "preview_none": "완성 예상도가 아직 없습니다. 아래 버튼으로 생성할 수 있습니다.",
         "regen_done": "「{name}」(으)로 교체했습니다.",
         "preview_updated": "완성 예상도를 갱신했습니다.",
+        "sample_header": "완성 예상도 샘플",
+        "sample_living": "북유럽 모던 × 거실",
+        "sample_bedroom": "내추럴 × 침실",
+        "sample_note": "조건을 입력하고 \"코디네이트 생성하기\"를 누르면 이런 제안과 완성 예상도가 당신의 방에 맞게 생성됩니다.",
     },
     "zh": {
         "caption": "只需输入户型·预算·风格，AI 即可提供室内搭配方案和效果预览图。",
@@ -345,6 +357,10 @@ TRANSLATIONS = {
         "preview_none": "尚无效果预览图。可使用下方按钮生成。",
         "regen_done": "已替换为「{name}」。",
         "preview_updated": "效果预览图已更新。",
+        "sample_header": "效果预览图示例",
+        "sample_living": "北欧现代 × 客厅",
+        "sample_bedroom": "自然风 × 卧室",
+        "sample_note": "输入条件并点击「生成搭配方案」，即可为您的房间生成这样的方案和效果预览图。",
     },
 }
 
