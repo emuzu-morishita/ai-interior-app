@@ -62,6 +62,24 @@ OWNED_PRESETS = {
     "pt": ["Sofá", "Cama", "Mesa de jantar", "TV / Rack de TV", "Escrivaninha", "Estante de livros", "Cortinas", "Iluminação", "Tapete", "Armário"],
 }
 
+# 部屋のイメージカラー：ベースカラー（壁・床・大型家具など面積の大きい基調色）のプリセット（言語別）
+COLOR_BASE_OPTIONS = {
+    "ja": ["ホワイト系", "ベージュ系", "グレージュ", "ライトグレー", "ナチュラルウッド", "ダークブラウン", "ネイビー", "アイボリー"],
+    "en": ["White tones", "Beige tones", "Greige", "Light gray", "Natural wood", "Dark brown", "Navy", "Ivory"],
+    "ko": ["화이트 계열", "베이지 계열", "그레이지", "라이트 그레이", "내추럴 우드", "다크 브라운", "네이비", "아이보리"],
+    "zh": ["白色系", "米色系", "灰米色", "浅灰色", "原木色", "深棕色", "藏青色", "象牙白"],
+    "pt": ["Tons de branco", "Tons de bege", "Greige", "Cinza claro", "Madeira natural", "Marrom escuro", "Azul-marinho", "Marfim"],
+}
+
+# 部屋のイメージカラー：アクセントカラー（クッション・小物・アートなどの差し色）のプリセット（言語別）
+COLOR_ACCENT_OPTIONS = {
+    "ja": ["グリーン", "ネイビー", "テラコッタ", "マスタード", "ブラック", "ゴールド", "くすみピンク", "ブルー"],
+    "en": ["Green", "Navy", "Terracotta", "Mustard", "Black", "Gold", "Dusty pink", "Blue"],
+    "ko": ["그린", "네이비", "테라코타", "머스터드", "블랙", "골드", "더스티 핑크", "블루"],
+    "zh": ["绿色", "藏青色", "陶土色", "芥末黄", "黑色", "金色", "灰粉色", "蓝色"],
+    "pt": ["Verde", "Azul-marinho", "Terracota", "Mostarda", "Preto", "Dourado", "Rosa empoeirado", "Azul"],
+}
+
 # UI文言
 TRANSLATIONS = {
     "ja": {
@@ -78,6 +96,13 @@ TRANSLATIONS = {
         "taste_label": "好みのテイスト",
         "taste_other": "その他（自由入力）",
         "taste_other_label": "テイストを自由に入力",
+        "color_base_label": "ベースカラー",
+        "color_accent_label": "アクセントカラー",
+        "color_none": "おまかせ（指定なし）",
+        "color_other": "その他（自由入力）",
+        "color_base_other_label": "ベースカラーを自由に入力",
+        "color_accent_other_label": "アクセントカラーを自由に入力",
+        "color_help": "壁・床・大型家具の基調色（ベース）と、小物などの差し色（アクセント）を選べます。",
         "budget_label": "予算 (円)",
         "budget_metric": "設定予算",
         "generate_btn": "コーディネートを生成する",
@@ -154,6 +179,13 @@ TRANSLATIONS = {
         "taste_label": "Preferred style",
         "taste_other": "Other (free text)",
         "taste_other_label": "Enter your own style",
+        "color_base_label": "Base color",
+        "color_accent_label": "Accent color",
+        "color_none": "No preference",
+        "color_other": "Other (free text)",
+        "color_base_other_label": "Enter your own base color",
+        "color_accent_other_label": "Enter your own accent color",
+        "color_help": "Choose the base color of walls, floor, and large furniture, plus an accent color for small items.",
         "budget_label": "Budget (JPY)",
         "budget_metric": "Set budget",
         "generate_btn": "Generate coordination",
@@ -230,6 +262,13 @@ TRANSLATIONS = {
         "taste_label": "선호하는 스타일",
         "taste_other": "기타 (직접 입력)",
         "taste_other_label": "원하는 스타일 입력",
+        "color_base_label": "베이스 컬러",
+        "color_accent_label": "악센트 컬러",
+        "color_none": "자동 (지정 안 함)",
+        "color_other": "기타 (직접 입력)",
+        "color_base_other_label": "베이스 컬러 직접 입력",
+        "color_accent_other_label": "악센트 컬러 직접 입력",
+        "color_help": "벽·바닥·대형 가구의 기조색(베이스)과 소품 등의 포인트색(악센트)을 선택할 수 있습니다.",
         "budget_label": "예산 (엔)",
         "budget_metric": "설정 예산",
         "generate_btn": "코디네이트 생성하기",
@@ -306,6 +345,13 @@ TRANSLATIONS = {
         "taste_label": "喜欢的风格",
         "taste_other": "其他（自由输入）",
         "taste_other_label": "请输入您的风格",
+        "color_base_label": "主色调",
+        "color_accent_label": "点缀色",
+        "color_none": "自动（不指定）",
+        "color_other": "其他（自由输入）",
+        "color_base_other_label": "自由输入主色调",
+        "color_accent_other_label": "自由输入点缀色",
+        "color_help": "可选择墙面·地板·大型家具的主色调（基础色）以及小物件等的点缀色。",
         "budget_label": "预算 (日元)",
         "budget_metric": "设定预算",
         "generate_btn": "生成搭配方案",
@@ -382,6 +428,13 @@ TRANSLATIONS = {
         "taste_label": "Estilo preferido",
         "taste_other": "Outro (texto livre)",
         "taste_other_label": "Digite seu próprio estilo",
+        "color_base_label": "Cor base",
+        "color_accent_label": "Cor de destaque",
+        "color_none": "Sem preferência",
+        "color_other": "Outro (texto livre)",
+        "color_base_other_label": "Digite a cor base",
+        "color_accent_other_label": "Digite a cor de destaque",
+        "color_help": "Escolha a cor base de paredes, piso e móveis grandes, além de uma cor de destaque para itens pequenos.",
         "budget_label": "Orçamento (JPY)",
         "budget_metric": "Orçamento definido",
         "generate_btn": "Gerar decoração",

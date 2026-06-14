@@ -40,12 +40,34 @@ def _owned_items_block(owned_items: str) -> str:
 """
 
 
+def _color_block(base_color: str = "", accent_color: str = "") -> str:
+    """部屋のイメージカラー（ベース／アクセント）を反映させるプロンプト断片を返す（空なら空文字）。"""
+    base = (base_color or "").strip()
+    accent = (accent_color or "").strip()
+    if not base and not accent:
+        return ""
+    lines = []
+    if base:
+        lines.append(f"- ベースカラー（壁・床・大型家具など面積の大きい部分の基調色）: {base}")
+    if accent:
+        lines.append(f"- アクセントカラー（クッション・小物・アートなどの差し色）: {accent}")
+    body = "\n".join(lines)
+    return f"""
+【部屋のイメージカラー（必ず反映）】
+以下の配色イメージになるよう、各アイテムの色味の選定と room_image_prompt の描写を行ってください。
+{body}
+※ ただし search_keyword には色を含めないこと（色名で絞ると検索ヒット率が下がるため）。
+"""
+
+
 def build_coordinate_prompt(
     room_size: str,
     budget: int,
     taste: str,
     language: str = "Japanese",
     owned_items: str = "",
+    base_color: str = "",
+    accent_color: str = "",
 ) -> str:
     return f"""
 あなたはプロのインテリアコーディネーターです。
@@ -56,6 +78,7 @@ def build_coordinate_prompt(
 - 予算合計: {budget}円（全アイテムの合計金額が予算内に収まるよう配分すること）
 - テイスト: {taste}
 {_owned_items_block(owned_items)}
+{_color_block(base_color, accent_color)}
 {_language_rules(language)}
 
 【予算が低い場合のルール】
@@ -80,6 +103,8 @@ def build_single_item_prompt(
     other_names: list[str],
     slot_budget: int,
     owned_items: str = "",
+    base_color: str = "",
+    accent_color: str = "",
 ) -> str:
     """提案リストのうち1アイテムだけを差し替えるためのプロンプト。
 
@@ -105,6 +130,7 @@ def build_single_item_prompt(
 【すでに提案済みで、重複させてはいけないアイテム】
 - {others}
 {_owned_items_block(owned_items)}
+{_color_block(base_color, accent_color)}
 {_language_rules(language)}
 
 {_PLACEMENT_RULES}

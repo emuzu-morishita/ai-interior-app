@@ -78,6 +78,8 @@ def build_html_report(
     budget: int,
     generated_at: str,
     owned_items: str = "",
+    base_color: str = "",
+    accent_color: str = "",
 ) -> str:
     """生成結果一式を単一HTMLファイル（画像埋め込み）にまとめて返す。"""
     total = sum(it["price"] for it in items)
@@ -97,7 +99,8 @@ def build_html_report(
     meta_rows = "".join(
         f'<div class="meta-row"><span class="k">{html_lib.escape(k)}</span>'
         f'<span class="v">{html_lib.escape(v)}</span></div>'
-        for k, v in _conditions(lang, room_label, taste, budget, total, generated_at, owned_items)
+        for k, v in _conditions(lang, room_label, taste, budget, total, generated_at, owned_items,
+                          base_color=base_color, accent_color=accent_color)
     )
 
     budget_block = _budget_section_html(items, total, lang)
@@ -211,11 +214,20 @@ footer {{ text-align: center; color: #9a8f7d; font-size: 11px; margin: 26px 0 6p
 </html>"""
 
 
-def _conditions(lang, room_label, taste, budget, total, generated_at, owned_items=""):
+def _conditions(lang, room_label, taste, budget, total, generated_at, owned_items="",
+                base_color="", accent_color=""):
     """各形式で共通して使う「提案条件」の (ラベル, 値) リストを返す。"""
     rows = [
         (t(lang, "room_size_label"), room_label),
         (t(lang, "taste_label"), taste),
+    ]
+    base = (base_color or "").strip()
+    if base:
+        rows.append((t(lang, "color_base_label"), base))
+    accent = (accent_color or "").strip()
+    if accent:
+        rows.append((t(lang, "color_accent_label"), accent))
+    rows += [
         (t(lang, "budget_metric"), f"¥{budget:,}"),
         (t(lang, "m_total"), f"¥{total:,}"),
         (t(lang, "report_generated"), generated_at),
@@ -261,6 +273,8 @@ def build_pdf_report(
     budget: int,
     generated_at: str,
     owned_items: str = "",
+    base_color: str = "",
+    accent_color: str = "",
 ) -> bytes:
     """生成結果を、見た目を保ったままのPDFバイト列にして返す。"""
     from reportlab.lib import colors
@@ -324,7 +338,8 @@ def build_pdf_report(
     # --- 提案条件 ---
     story.append(Paragraph(esc(t(lang, "report_conditions")), h2))
     cond_rows = [[Paragraph(esc(k), key), Paragraph(esc(v), val)]
-                 for k, v in _conditions(lang, room_label, taste, budget, total, generated_at, owned_items)]
+                 for k, v in _conditions(lang, room_label, taste, budget, total, generated_at, owned_items,
+                          base_color=base_color, accent_color=accent_color)]
     cond_tbl = Table(cond_rows, colWidths=[doc.width * 0.32, doc.width * 0.68])
     cond_tbl.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
@@ -407,6 +422,8 @@ def build_excel_report(
     budget: int,
     generated_at: str,
     owned_items: str = "",
+    base_color: str = "",
+    accent_color: str = "",
 ) -> bytes:
     """生成結果を、条件・アイテム表・おすすめ商品・完成予想図を含むExcelにして返す。"""
     from openpyxl import Workbook
@@ -436,7 +453,8 @@ def build_excel_report(
 
     # 提案条件
     r = 3
-    for k, v in _conditions(lang, room_label, taste, budget, total, generated_at, owned_items):
+    for k, v in _conditions(lang, room_label, taste, budget, total, generated_at, owned_items,
+                          base_color=base_color, accent_color=accent_color):
         ws.cell(r, 1, k).font = Font(bold=True, color="7A7468")
         ws.cell(r, 2, v)
         r += 1

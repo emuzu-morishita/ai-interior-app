@@ -338,6 +338,8 @@ def _regenerate_item(idx: int, lang: str, regen_image: bool = False) -> None:
                 other_names=other_names,
                 slot_budget=int(target.get("price", 0)),
                 owned_items=ctx.get("owned_items", ""),
+                base_color=ctx.get("base_color", ""),
+                accent_color=ctx.get("accent_color", ""),
             )
         except Exception as e:
             _set_flash("warning", t(lang, "warn_regen", e=e))
@@ -486,6 +488,31 @@ with col_r:
     budget = st.number_input(t(lang, "budget_label"), min_value=5000, max_value=1000000, value=50000, step=5000)
     st.metric(t(lang, "budget_metric"), f"¥{budget:,}")
 
+# --- 部屋のイメージカラー（ベース／アクセント）：プリセット＋自由入力。
+#     先頭「おまかせ（指定なし）」が既定で、未指定なら従来どおり色を制約しない ---
+color_none = t(lang, "color_none")
+color_other = t(lang, "color_other")
+col_cb, col_ca = st.columns([1, 1])
+with col_cb:
+    base_choice = st.selectbox(
+        t(lang, "color_base_label"),
+        [color_none] + i18n.COLOR_BASE_OPTIONS[lang] + [color_other],
+        help=t(lang, "color_help"),
+    )
+    if base_choice == color_other:
+        base_color = st.text_input(t(lang, "color_base_other_label"), "").strip()
+    else:
+        base_color = "" if base_choice == color_none else base_choice
+with col_ca:
+    accent_choice = st.selectbox(
+        t(lang, "color_accent_label"),
+        [color_none] + i18n.COLOR_ACCENT_OPTIONS[lang] + [color_other],
+    )
+    if accent_choice == color_other:
+        accent_color = st.text_input(t(lang, "color_accent_other_label"), "").strip()
+    else:
+        accent_color = "" if accent_choice == color_none else accent_choice
+
 # 言語切替時は手持ち家具の選択をリセット（プリセットが言語別のため）
 if st.session_state.get("prev_lang") != lang:
     st.session_state.pop("owned_ms", None)
@@ -544,6 +571,8 @@ if st.button(t(lang, "generate_btn"), type="primary", width="stretch"):
         "taste": taste,
         "language_name": language_name,
         "owned_items": owned_items,
+        "base_color": base_color,
+        "accent_color": accent_color,
     }
 
     # --- 生成パイプライン（st.status でステップ形式に進捗を可視化） ---
@@ -553,7 +582,8 @@ if st.button(t(lang, "generate_btn"), type="primary", width="stretch"):
         st.write(f"📐 {t(lang, 'spinner_coordinate')}")
         try:
             result = OpenAICoordinateGenerator(OPENAI_KEY).generate(
-                room_prompt, budget, taste, language_name, owned_items
+                room_prompt, budget, taste, language_name, owned_items,
+                base_color=base_color, accent_color=accent_color,
             )
             st.session_state.coord_items = result["items"]
             # 全アイテムを配置した部屋全体の画像プロンプト（プレビュー更新でも使う）
@@ -729,6 +759,8 @@ if st.session_state.coord_items:
         budget=gen_budget,
         generated_at=datetime.now().strftime("%Y-%m-%d %H:%M"),
         owned_items=ctx.get("owned_items", ""),
+        base_color=ctx.get("base_color", ""),
+        accent_color=ctx.get("accent_color", ""),
     )
     stamp = datetime.now().strftime("%Y%m%d_%H%M")
     _XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"

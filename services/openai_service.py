@@ -40,9 +40,14 @@ class OpenAICoordinateGenerator(CoordinateGeneratorBase):
         taste: str,
         language: str = "Japanese",
         owned_items: str = "",
+        base_color: str = "",
+        accent_color: str = "",
     ) -> dict:
         return self._complete(
-            build_coordinate_prompt(room_size, budget, taste, language, owned_items)
+            build_coordinate_prompt(
+                room_size, budget, taste, language, owned_items,
+                base_color=base_color, accent_color=accent_color,
+            )
         )
 
     def regenerate_item(
@@ -56,6 +61,8 @@ class OpenAICoordinateGenerator(CoordinateGeneratorBase):
         other_names: list[str],
         slot_budget: int,
         owned_items: str = "",
+        base_color: str = "",
+        accent_color: str = "",
     ) -> tuple[dict, str]:
         """提案リストのうち1アイテムだけを差し替える。
 
@@ -67,6 +74,8 @@ class OpenAICoordinateGenerator(CoordinateGeneratorBase):
             other_names=other_names,
             slot_budget=slot_budget,
             owned_items=owned_items,
+            base_color=base_color,
+            accent_color=accent_color,
         ))
         items = result.get("items") or []
         if not items:
