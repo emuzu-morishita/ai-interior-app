@@ -230,13 +230,54 @@ button[kind="primary"]:hover {
   text-align: center; padding: 10px 0 4px;
 }
 
-/* ── モバイル対応 ─────────────────────────── */
+/* ── モバイル対応（スマホ幅。st.columns は自動で縦積みになるため、
+      ここでは縦積み時の余白・サイズ・タップ領域・横スクロールを最適化する） ── */
 @media (max-width: 640px) {
-  .block-container { padding-top: 1.4rem; }
+  /* レイアウト全体：横余白を詰めて画面幅を活かす */
+  .block-container { padding-top: 1.4rem; padding-left: 1rem; padding-right: 1rem; }
+
+  /* ヒーロー */
   .hero { padding: 22px 20px; }
   .hero h1 { font-size: 24px; }
   .hero p  { font-size: 14px; }
-  .sim-card { width: calc(50% - 7px); }
+
+  /* セクション見出しを少しコンパクトに */
+  .sec-hd { margin: 22px 0 12px; }
+  .sec-hd .tx { font-size: 17px; }
+  .sec-hd .ic { font-size: 18px; }
+
+  /* おすすめ商品カード：1行で横に流す（スワイプ閲覧）。
+     端が見切れないよう左右に余白を取り、スナップを効かせる */
+  .sim-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    padding: 2px 4px 10px;
+    margin: 0 -4px;
+  }
+  .sim-card {
+    flex: 0 0 auto;
+    width: 150px;
+    scroll-snap-align: start;
+  }
+
+  /* タップしやすいボタン（44px目安）。新旧 testid を両対応 */
+  [data-testid="stButton"] button,
+  [data-testid="stDownloadButton"] button,
+  button[kind="primary"],
+  button[kind="secondary"] {
+    min-height: 44px !important;
+  }
+  .sim-btn { padding: 12px 0; }      /* 商品カード内のボタン */
+  .sb-link { padding: 13px 12px; }   /* サイドバーのリンク */
+
+  /* メトリクス（提案数/合計/差額）の縦積み時：詰めと行間の余白を最適化 */
+  [data-testid="metric-container"],
+  [data-testid="stMetric"] { padding: 13px 15px; margin-bottom: 8px; }
+
+  /* サイドバーのブランドカードをコンパクトに */
+  .sb-brand { padding: 16px; }
 }
 </style>
 """,
