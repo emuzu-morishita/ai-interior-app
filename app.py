@@ -389,6 +389,8 @@ def _regenerate_item(idx: int, lang: str, regen_image: bool = False) -> None:
         # 古いアイテムのおすすめ商品を破棄し、該当枠だけ差し替える
         st.session_state.shopping_results.pop(target["item_name"], None)
         st.session_state.coord_items[idx] = new_item
+        # この枠の価格反映の選択はリセット（商品一覧が変わるため）
+        st.session_state.pop(f"sel_{idx}", None)
         if new_room_prompt:
             # 以後のプレビュー更新が「差し替え後の部屋」で行われるよう上書きする
             ctx["room_image_prompt"] = new_room_prompt
@@ -591,6 +593,9 @@ if st.button(t(lang, "generate_btn"), type="primary", width="stretch"):
     st.session_state.shopping_results = {}
     st.session_state.room_image = None
     st.session_state.error = None
+    # 価格反映の選択（sel_*）も前回分をリセット
+    for _k in [k for k in st.session_state.keys() if k.startswith("sel_")]:
+        del st.session_state[_k]
 
     # 手持ち家具（提案・予算から除外する対象）。マルチセレクトのリストを文字列化
     owned_items = ", ".join(owned_input) if owned_input else ""
@@ -694,9 +699,14 @@ if st.session_state.coord_items:
     gen_taste = ctx.get("taste", taste)
     gen_room_idx = ctx.get("room_idx", room_idx)
 
-    total_price = sum(item["price"] for item in items)
-    remaining = gen_budget - total_price
-    over_budget = remaining < 0
+    # 各アイテムでユーザーが「価格に反映する商品」を選んだ場合の選択商品（item_name → ShoppingItem）。
+    # ラジオの選択状態は session_state（キー sel_*）が保持し、描画のたびにここへ集約する。
+    # 合計・予算差・チャート・レポートは「選択済み=実価格・未選択=AI概算」のハイブリッドで算出する。
+    selected_products: dict = {}
+
+    def _eff_price(it: dict) -> int:
+        sel = selected_products.get(it["item_name"])
+        return sel.price if sel else it["price"]
 
     st.markdown("---")
 
@@ -733,7 +743,17 @@ if st.session_state.coord_items:
     )
     for i, item in enumerate(items, 1):
         idx = i - 1
-        with st.expander(f"{i}. {item['item_name']} — ¥{item['price']:,}", expanded=True):
+        name = item["item_name"]
+        products = shopping_results.get(name, [])
+        # 直前の選択（rerun をまたいで session_state が保持）から、見出しに出す実効価格を決める。
+        # 再生成等で products 数が変わった場合に備え、範囲外は AI概算扱いにフォールバックする。
+        prev_sel = st.session_state.get(f"sel_{idx}", 0)
+        chosen_prev = products[prev_sel - 1] if isinstance(prev_sel, int) and 1 <= prev_sel <= len(products) else None
+        eff = chosen_prev.price if chosen_prev else item["price"]
+        title = f"{i}. {name} — ¥{eff:,}"
+        if chosen_prev:
+            title += f"（{t(lang, 'selected_badge')}）"
+        with st.expander(title, expanded=True):
             head_l, head_r = st.columns([3, 1])
             with head_r:
                 regen_clicked = st.button(
@@ -745,17 +765,38 @@ if st.session_state.coord_items:
                 st.write(item["reason"])
             if item.get("placement"):
                 st.info(f"📐 **{t(lang, 'placement_label')}** {item['placement']}")
-            products = shopping_results.get(item["item_name"], [])
             if products:
                 st.markdown(f"**{t(lang, 'recommend_header')}**")
                 st.markdown(_render_products(products, lang), unsafe_allow_html=True)
+
+                # 価格に反映する商品をラジオで選択（0=AI概算 / 1..=各商品）。
+                # 既定は AI概算。選択状態は session_state(sel_*) が保持する。
+                def _fmt(o, _it=item, _ps=products):
+                    if o == 0:
+                        return t(lang, "price_use_ai", price=_it["price"])
+                    p = _ps[o - 1]
+                    pname = p.name[:24] + ("…" if len(p.name) > 24 else "")
+                    return t(lang, "price_use_product", source=p.source, name=pname, price=p.price)
+
+                sel = st.radio(
+                    t(lang, "price_select_label"),
+                    list(range(len(products) + 1)),
+                    key=f"sel_{idx}",
+                    format_func=_fmt,
+                )
+                if isinstance(sel, int) and 1 <= sel <= len(products):
+                    selected_products[name] = products[sel - 1]
             elif (RAKUTEN_APP_ID and RAKUTEN_ACCESS_KEY) or YAHOO_APP_ID:
                 st.caption(t(lang, "no_products"))
 
             if regen_clicked:
                 _regenerate_item(idx, lang, regen_image=regen_with_image)
 
-    # 3. 値段等の概要（メトリクス + 予算内訳）
+    # 3. 値段等の概要（メトリクス + 予算内訳）。選択商品を反映したハイブリッド合計で算出
+    total_price = sum(_eff_price(it) for it in items)
+    remaining = gen_budget - total_price
+    over_budget = remaining < 0
+
     st.markdown("---")
     m1, m2, m3 = st.columns(3)
     m1.metric(t(lang, "m_count"), t(lang, "count_unit", n=len(items)))
@@ -785,7 +826,7 @@ if st.session_state.coord_items:
     )
     chart_data = pd.DataFrame({
         t(lang, "chart_item"): [item["item_name"] for item in items],
-        t(lang, "chart_price"): [item["price"] for item in items],
+        t(lang, "chart_price"): [_eff_price(item) for item in items],
     })
     st.bar_chart(chart_data.set_index(t(lang, "chart_item")), color="#4d7c0f")
 
@@ -802,6 +843,7 @@ if st.session_state.coord_items:
         owned_items=ctx.get("owned_items", ""),
         base_color=ctx.get("base_color", ""),
         accent_color=ctx.get("accent_color", ""),
+        selections=selected_products,
     )
     stamp = datetime.now().strftime("%Y%m%d_%H%M")
     _XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"

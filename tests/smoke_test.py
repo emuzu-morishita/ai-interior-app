@@ -146,6 +146,20 @@ for _lng in TRANSLATIONS.keys():
     assert xlsx_out[:2] == b"PK", f"Excelが壊れている ({_lng})"
 print(f"[4] レポート3形式 × 全{len(TRANSLATIONS)}言語（placement 入り）OK")
 
+# 選択商品を渡したレポート：合計が実価格で再計算され、選択商品が明示されること
+_sel_name = ITEMS[0]["item_name"]
+_sel_product = shopping[_sel_name][0]  # フェイク商品 ¥9,999
+_selections = {_sel_name: _sel_product}
+_eff_total = _sel_product.price + ITEMS[1]["price"] + ITEMS[2]["price"]  # 9999+20000+30000
+_kw = dict(lang="ja", room_label=ROOM_SIZE_LABELS["ja"][0], taste="北欧モダン",
+           budget=50000, generated_at="2026-06-12 12:00", selections=_selections)
+_html_sel = build_html_report(ITEMS, shopping, room_img, **_kw)
+assert f"¥{_eff_total:,}" in _html_sel, "レポートに選択商品の実価格合計が反映されていない"
+assert "選択商品" in _html_sel and _sel_product.name in _html_sel, "レポートに選択商品が明示されていない"
+assert build_pdf_report(ITEMS, shopping, room_img, **_kw)[:4] == b"%PDF", "選択商品入りPDFが壊れている"
+assert build_excel_report(ITEMS, shopping, room_img, **_kw)[:2] == b"PK", "選択商品入りExcelが壊れている"
+print("[4b] レポートに選択商品の実価格・明示を反映 OK")
+
 # 個別再生成（regen_0）→ 差し替え + room_image_prompt 更新 + 商品再検索の確認
 at.button(key="regen_0").click()
 at.run()
@@ -165,5 +179,16 @@ assert calls["image_prompts"][-1] == "Updated ultra-wide room prompt", (
     "プレビュー更新に最新の room_image_prompt が使われていない"
 )
 print("[6] プレビュー更新 OK")
+
+# 価格反映の選択：item0 に実商品（¥9,999）を選ぶ → 合計メトリクスが実価格で再計算される
+# （[5]の再生成で item0 は「差し替えアイテム」¥12,345 に置換済み → 選択で 9999 に。合計 59,999）
+at.radio(key="sel_0").set_value(1).run()
+assert not at.exception, f"商品選択で例外: {[e.value for e in at.exception]}"
+assert at.session_state["sel_0"] == 1, "選択状態（sel_0）が保持されていない"
+_metric_vals = [str(m.value) for m in at.metric]
+assert any("59,999" in v for v in _metric_vals), (
+    f"選択商品の実価格が合計に反映されていない: {_metric_vals}"
+)
+print("[7] 価格反映の選択 OK（実価格で合計を再計算）")
 
 print("ALL CHECKS PASSED")

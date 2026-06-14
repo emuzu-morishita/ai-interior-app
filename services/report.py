@@ -46,19 +46,26 @@ def _product_cards(products, lang: str) -> str:
     return f'<div class="p-row">{"".join(cards)}</div>'
 
 
-def _budget_section_html(items, total: int, lang: str) -> str:
+def _eff_price(it, selections=None) -> int:
+    """選択商品があればその実価格、無ければAI概算価格を返す（ハイブリッド合計用）。"""
+    sel = (selections or {}).get(it["item_name"])
+    return sel.price if sel else it["price"]
+
+
+def _budget_section_html(items, total: int, lang: str, selections=None) -> str:
     """予算内訳を、自己完結したCSSバーのHTMLセクションとして返す。"""
     if not items or total <= 0:
         return ""
     rows = []
     for it in items:
-        pct = round(it["price"] / total * 100)
+        price = _eff_price(it, selections)
+        pct = round(price / total * 100)
         name = html_lib.escape(it["item_name"])
         rows.append(
             f'<div class="bd-row">'
             f'<span class="bd-name">{name}</span>'
             f'<span class="bd-track"><span class="bd-fill" style="width:{pct}%"></span></span>'
-            f'<span class="bd-val">¥{it["price"]:,}<small>{pct}%</small></span>'
+            f'<span class="bd-val">¥{price:,}<small>{pct}%</small></span>'
             f'</div>'
         )
     return (
@@ -80,9 +87,10 @@ def build_html_report(
     owned_items: str = "",
     base_color: str = "",
     accent_color: str = "",
+    selections=None,
 ) -> str:
     """生成結果一式を単一HTMLファイル（画像埋め込み）にまとめて返す。"""
-    total = sum(it["price"] for it in items)
+    total = sum(_eff_price(it, selections) for it in items)
 
     # --- 完成予想図 ---
     image_block = ""
@@ -103,7 +111,7 @@ def build_html_report(
                           base_color=base_color, accent_color=accent_color)
     )
 
-    budget_block = _budget_section_html(items, total, lang)
+    budget_block = _budget_section_html(items, total, lang, selections)
 
     # --- アイテム一覧 ---
     item_blocks = []
@@ -123,13 +131,22 @@ def build_html_report(
                 f'<div class="rec-h">{html_lib.escape(t(lang, "recommend_header"))}</div>'
                 f'{_product_cards(products, lang)}'
             )
+        sel = (selections or {}).get(it["item_name"])
+        sel_block = ""
+        if sel:
+            sname = html_lib.escape(sel.name[:60] + ("…" if len(sel.name) > 60 else ""))
+            sel_block = (
+                f'<p class="item-place">✅ <b>{html_lib.escape(t(lang, "selected_product_label"))}</b> '
+                f'{sname} — ¥{sel.price:,}（{html_lib.escape(sel.source)}）</p>'
+            )
         item_blocks.append(
             f'<div class="item">'
             f'<div class="item-head">'
             f'<span class="item-no">{i}</span>'
             f'<span class="item-name">{name}</span>'
-            f'<span class="item-price">¥{it["price"]:,}</span>'
+            f'<span class="item-price">¥{_eff_price(it, selections):,}</span>'
             f'</div>'
+            f'{sel_block}'
             f'<p class="item-reason">{reason}</p>'
             f'{place_block}'
             f'{rec_block}'
@@ -275,6 +292,7 @@ def build_pdf_report(
     owned_items: str = "",
     base_color: str = "",
     accent_color: str = "",
+    selections=None,
 ) -> bytes:
     """生成結果を、見た目を保ったままのPDFバイト列にして返す。"""
     from reportlab.lib import colors
@@ -286,7 +304,7 @@ def build_pdf_report(
     )
 
     font = _register_pdf_font(lang)
-    total = sum(it["price"] for it in items)
+    total = sum(_eff_price(it, selections) for it in items)
 
     green = colors.HexColor("#4d7c0f")
     dark = colors.HexColor("#2b2b28")
@@ -368,10 +386,16 @@ def build_pdf_report(
     # --- アイテム一覧 ---
     story.append(Paragraph(esc(t(lang, "items_header")), h2))
     for i, it in enumerate(items, 1):
-        story.append(Paragraph(f"{i}. {esc(it['item_name'])} — ¥{it['price']:,}", ih))
+        story.append(Paragraph(f"{i}. {esc(it['item_name'])} — ¥{_eff_price(it, selections):,}", ih))
         story.append(Paragraph(esc(it["reason"]), body))
         if it.get("placement"):
             story.append(Paragraph(f"{esc(t(lang, 'placement_label'))} {esc(it['placement'])}", place))
+        _sel = (selections or {}).get(it["item_name"])
+        if _sel:
+            story.append(Paragraph(
+                f"✅ {esc(t(lang, 'selected_product_label'))}: {esc(_sel.name)} — ¥{_sel.price:,}（{esc(_sel.source)}）",
+                place,
+            ))
         products = shopping_results.get(it["item_name"], [])
         if products:
             story.append(Paragraph(esc(t(lang, "recommend_header")), rec))
@@ -396,14 +420,15 @@ def build_pdf_report(
         d = Drawing(doc.width, row_h * len(items))
         for k, it in enumerate(items):
             y = (len(items) - 1 - k) * row_h + 4
-            frac = it["price"] / total
+            price = _eff_price(it, selections)
+            frac = price / total
             label = it["item_name"]
             if len(label) > 14:
                 label = label[:13] + "…"
             d.add(String(0, y, label, fontName=font, fontSize=8, fillColor=dark))
             d.add(Rect(label_w, y - 1, bar_max, 9, fillColor=line_col, strokeColor=None))
             d.add(Rect(label_w, y - 1, max(1.0, bar_max * frac), 9, fillColor=green, strokeColor=None))
-            d.add(String(label_w + bar_max + 6, y, f"¥{it['price']:,} ({round(frac * 100)}%)",
+            d.add(String(label_w + bar_max + 6, y, f"¥{price:,} ({round(frac * 100)}%)",
                          fontName=font, fontSize=8, fillColor=dark))
         story.append(d)
 
@@ -424,13 +449,14 @@ def build_excel_report(
     owned_items: str = "",
     base_color: str = "",
     accent_color: str = "",
+    selections=None,
 ) -> bytes:
     """生成結果を、条件・アイテム表・おすすめ商品・完成予想図を含むExcelにして返す。"""
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
     from openpyxl.drawing.image import Image as XLImage
 
-    total = sum(it["price"] for it in items)
+    total = sum(_eff_price(it, selections) for it in items)
     GREEN = "4D7C0F"
     HEAD_BG = "EEF3E3"
     white = Font(color="FFFFFF", bold=True)
@@ -474,7 +500,7 @@ def build_excel_report(
     for i, it in enumerate(items, 1):
         ws.cell(r, 1, i).border = border
         ws.cell(r, 2, it["item_name"]).border = border
-        pc = ws.cell(r, 3, it["price"])
+        pc = ws.cell(r, 3, _eff_price(it, selections))
         pc.number_format = "¥#,##0"
         pc.border = border
         rc = ws.cell(r, 4, it["reason"])
@@ -522,9 +548,14 @@ def build_excel_report(
             cell.border = border
         r += 1
         for it in items:
+            _sel = (selections or {}).get(it["item_name"])
             for p in shopping_results.get(it["item_name"], []):
+                is_sel = _sel is not None and p == _sel
                 ws.cell(r, 1, it["item_name"]).border = border
-                ws.cell(r, 2, p.name).border = border
+                nc = ws.cell(r, 2, ("✅ " if is_sel else "") + p.name)
+                nc.border = border
+                if is_sel:
+                    nc.font = Font(bold=True, color=GREEN)
                 pc = ws.cell(r, 3, p.price)
                 pc.number_format = "¥#,##0"
                 pc.border = border
